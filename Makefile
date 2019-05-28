@@ -5,6 +5,10 @@ VERSION ?= commit-$(GIT_REF)
 dep:
 	GO111MODULE=on go mod vendor -v
 
+.PHONY: tidy
+tidy:
+	GO111MODULE=on go mod tidy
+
 .PHONY: build
 build:
 	CGO_ENABLED=0 go build -o bin/server \
