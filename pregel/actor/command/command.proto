@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+package command;
+
+message InitVertex {
+    string vertex_id = 1;
+}
+
+message LoadVertex {}
+
+message Compute {
+    uint64 super_step = 1;
+}
+
+message CustomVertexMessage {
+    google.protobuf.Any message = 1;
+}

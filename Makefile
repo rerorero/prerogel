@@ -23,3 +23,11 @@ test:
 coverage:
 	GO111MODULE=on go test -race -coverpkg=./... -coverprofile=coverage.txt ./...
 
+
+PROTO_FILES := $(shell find . -type f -name '*.proto' -print)
+PROTO_GEN_FILES = $(patsubst %.proto, %.pb.go, $(PROTO_FILES))
+PROTOC := protoc --gogoslick_out=Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,plugins=grpc:.
+
+protogen: $(PROTO_GEN_FILES)
+%.pb.go: %.proto
+	cd $(dir $<); $(PROTOC) --proto_path=. --proto_path=$(GOPATH)/src ./*.proto
