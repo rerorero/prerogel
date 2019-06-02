@@ -9,7 +9,6 @@ import (
 	types "github.com/gogo/protobuf/types"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
 )
@@ -444,9 +443,9 @@ func (m *CustomVertexMessage) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintCommand(dAtA, i, uint64(m.Message.Size()))
-		n1, err1 := m.Message.MarshalTo(dAtA[i:])
-		if err1 != nil {
-			return 0, err1
+		n1, err := m.Message.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
 		i += n1
 	}
@@ -510,7 +509,14 @@ func (m *CustomVertexMessage) Size() (n int) {
 }
 
 func sovCommand(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozCommand(x uint64) (n int) {
 	return sovCommand(uint64((x << 1) ^ uint64((int64(x) >> 63))))
