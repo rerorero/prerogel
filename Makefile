@@ -11,13 +11,13 @@ tidy:
 	$(GOCMD) mod tidy
 
 .PHONY: build
-build: protogen
+build: dep plugin protogen
 	CGO_ENABLED=0 $(GOCMD) build -o bin/server \
         -ldflags "-X main.version=$(VERSION)" \
-        github.com/rerorero/graph
+        github.com/rerorero/prerogel
 
 .PHONY: test
-test: dep protogen
+test: dep plugin protogen
 	@$(GOCMD) test -v -race ./...
 
 .PHONY: coverage
@@ -36,6 +36,6 @@ plugin:
 	@$(GOCMD) get github.com/gogo/protobuf/protoc-gen-gogoslick
 	@$(GOCMD) get github.com/gogo/protobuf/gogoproto
 
-protogen: plugin
+protogen:
 	@for d in $(PROTO_GEN_FILES); do cd `dirname $$d`; $(PROTOC) --proto_path=. --proto_path=$(GOPATH)/src ./*.proto; done
 
