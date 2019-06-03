@@ -11,17 +11,17 @@ tidy:
 	$(GOCMD) mod tidy
 
 .PHONY: build
-build: dep plugin protogen
+build: dep
 	CGO_ENABLED=0 $(GOCMD) build -o bin/server \
         -ldflags "-X main.version=$(VERSION)" \
         github.com/rerorero/prerogel
 
 .PHONY: test
-test: dep plugin protogen
+test: dep
 	@$(GOCMD) test -v ./...
 
 .PHONY: coverage
-coverage: dep protogen
+coverage: dep
 	@$(GOCMD) test -coverpkg=./... -coverprofile=coverage.txt ./...
 
 

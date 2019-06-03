@@ -10,7 +10,6 @@ jobs:
     <<: *golang
     steps:
       - checkout
-      - run: make dep
       - run: make build
       - run: make coverage
       - run: bash <(curl -s https://codecov.io/bash)
