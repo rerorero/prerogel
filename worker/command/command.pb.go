@@ -67,21 +67,21 @@ func (m *InitVertex) GetVertexId() string {
 	return ""
 }
 
-type InitVertexCompleted struct {
+type InitVertexAck struct {
 	VertexId string `protobuf:"bytes,1,opt,name=vertex_id,json=vertexId,proto3" json:"vertex_id,omitempty"`
 }
 
-func (m *InitVertexCompleted) Reset()      { *m = InitVertexCompleted{} }
-func (*InitVertexCompleted) ProtoMessage() {}
-func (*InitVertexCompleted) Descriptor() ([]byte, []int) {
+func (m *InitVertexAck) Reset()      { *m = InitVertexAck{} }
+func (*InitVertexAck) ProtoMessage() {}
+func (*InitVertexAck) Descriptor() ([]byte, []int) {
 	return fileDescriptor_213c0bb044472049, []int{1}
 }
-func (m *InitVertexCompleted) XXX_Unmarshal(b []byte) error {
+func (m *InitVertexAck) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *InitVertexCompleted) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *InitVertexAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_InitVertexCompleted.Marshal(b, m, deterministic)
+		return xxx_messageInfo_InitVertexAck.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -91,19 +91,19 @@ func (m *InitVertexCompleted) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return b[:n], nil
 	}
 }
-func (m *InitVertexCompleted) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_InitVertexCompleted.Merge(m, src)
+func (m *InitVertexAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InitVertexAck.Merge(m, src)
 }
-func (m *InitVertexCompleted) XXX_Size() int {
+func (m *InitVertexAck) XXX_Size() int {
 	return m.Size()
 }
-func (m *InitVertexCompleted) XXX_DiscardUnknown() {
-	xxx_messageInfo_InitVertexCompleted.DiscardUnknown(m)
+func (m *InitVertexAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_InitVertexAck.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_InitVertexCompleted proto.InternalMessageInfo
+var xxx_messageInfo_InitVertexAck proto.InternalMessageInfo
 
-func (m *InitVertexCompleted) GetVertexId() string {
+func (m *InitVertexAck) GetVertexId() string {
 	if m != nil {
 		return m.VertexId
 	}
@@ -145,21 +145,21 @@ func (m *LoadVertex) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_LoadVertex proto.InternalMessageInfo
 
-type LoadVertexCompleted struct {
+type LoadVertexAck struct {
 	VertexId string `protobuf:"bytes,1,opt,name=vertex_id,json=vertexId,proto3" json:"vertex_id,omitempty"`
 }
 
-func (m *LoadVertexCompleted) Reset()      { *m = LoadVertexCompleted{} }
-func (*LoadVertexCompleted) ProtoMessage() {}
-func (*LoadVertexCompleted) Descriptor() ([]byte, []int) {
+func (m *LoadVertexAck) Reset()      { *m = LoadVertexAck{} }
+func (*LoadVertexAck) ProtoMessage() {}
+func (*LoadVertexAck) Descriptor() ([]byte, []int) {
 	return fileDescriptor_213c0bb044472049, []int{3}
 }
-func (m *LoadVertexCompleted) XXX_Unmarshal(b []byte) error {
+func (m *LoadVertexAck) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *LoadVertexCompleted) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *LoadVertexAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_LoadVertexCompleted.Marshal(b, m, deterministic)
+		return xxx_messageInfo_LoadVertexAck.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -169,19 +169,19 @@ func (m *LoadVertexCompleted) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return b[:n], nil
 	}
 }
-func (m *LoadVertexCompleted) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LoadVertexCompleted.Merge(m, src)
+func (m *LoadVertexAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LoadVertexAck.Merge(m, src)
 }
-func (m *LoadVertexCompleted) XXX_Size() int {
+func (m *LoadVertexAck) XXX_Size() int {
 	return m.Size()
 }
-func (m *LoadVertexCompleted) XXX_DiscardUnknown() {
-	xxx_messageInfo_LoadVertexCompleted.DiscardUnknown(m)
+func (m *LoadVertexAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_LoadVertexAck.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_LoadVertexCompleted proto.InternalMessageInfo
+var xxx_messageInfo_LoadVertexAck proto.InternalMessageInfo
 
-func (m *LoadVertexCompleted) GetVertexId() string {
+func (m *LoadVertexAck) GetVertexId() string {
 	if m != nil {
 		return m.VertexId
 	}
@@ -231,22 +231,22 @@ func (m *Compute) GetSuperStep() uint64 {
 	return 0
 }
 
-type ComputeCompleted struct {
+type ComputeAck struct {
 	VertexId string `protobuf:"bytes,1,opt,name=vertex_id,json=vertexId,proto3" json:"vertex_id,omitempty"`
 	Halted   bool   `protobuf:"varint,2,opt,name=halted,proto3" json:"halted,omitempty"`
 }
 
-func (m *ComputeCompleted) Reset()      { *m = ComputeCompleted{} }
-func (*ComputeCompleted) ProtoMessage() {}
-func (*ComputeCompleted) Descriptor() ([]byte, []int) {
+func (m *ComputeAck) Reset()      { *m = ComputeAck{} }
+func (*ComputeAck) ProtoMessage() {}
+func (*ComputeAck) Descriptor() ([]byte, []int) {
 	return fileDescriptor_213c0bb044472049, []int{5}
 }
-func (m *ComputeCompleted) XXX_Unmarshal(b []byte) error {
+func (m *ComputeAck) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *ComputeCompleted) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ComputeAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_ComputeCompleted.Marshal(b, m, deterministic)
+		return xxx_messageInfo_ComputeAck.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -256,26 +256,26 @@ func (m *ComputeCompleted) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return b[:n], nil
 	}
 }
-func (m *ComputeCompleted) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ComputeCompleted.Merge(m, src)
+func (m *ComputeAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ComputeAck.Merge(m, src)
 }
-func (m *ComputeCompleted) XXX_Size() int {
+func (m *ComputeAck) XXX_Size() int {
 	return m.Size()
 }
-func (m *ComputeCompleted) XXX_DiscardUnknown() {
-	xxx_messageInfo_ComputeCompleted.DiscardUnknown(m)
+func (m *ComputeAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_ComputeAck.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ComputeCompleted proto.InternalMessageInfo
+var xxx_messageInfo_ComputeAck proto.InternalMessageInfo
 
-func (m *ComputeCompleted) GetVertexId() string {
+func (m *ComputeAck) GetVertexId() string {
 	if m != nil {
 		return m.VertexId
 	}
 	return ""
 }
 
-func (m *ComputeCompleted) GetHalted() bool {
+func (m *ComputeAck) GetHalted() bool {
 	if m != nil {
 		return m.Halted
 	}
@@ -283,9 +283,11 @@ func (m *ComputeCompleted) GetHalted() bool {
 }
 
 type SuperStepMessage struct {
-	SuperStep    uint64     `protobuf:"varint,1,opt,name=super_step,json=superStep,proto3" json:"super_step,omitempty"`
-	DestVertexId string     `protobuf:"bytes,2,opt,name=dest_vertex_id,json=destVertexId,proto3" json:"dest_vertex_id,omitempty"`
-	Message      *types.Any `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Uuid         string     `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	SuperStep    uint64     `protobuf:"varint,2,opt,name=super_step,json=superStep,proto3" json:"super_step,omitempty"`
+	SrcVertexId  string     `protobuf:"bytes,3,opt,name=src_vertex_id,json=srcVertexId,proto3" json:"src_vertex_id,omitempty"`
+	DestVertexId string     `protobuf:"bytes,4,opt,name=dest_vertex_id,json=destVertexId,proto3" json:"dest_vertex_id,omitempty"`
+	Message      *types.Any `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
 }
 
 func (m *SuperStepMessage) Reset()      { *m = SuperStepMessage{} }
@@ -320,11 +322,25 @@ func (m *SuperStepMessage) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SuperStepMessage proto.InternalMessageInfo
 
+func (m *SuperStepMessage) GetUuid() string {
+	if m != nil {
+		return m.Uuid
+	}
+	return ""
+}
+
 func (m *SuperStepMessage) GetSuperStep() uint64 {
 	if m != nil {
 		return m.SuperStep
 	}
 	return 0
+}
+
+func (m *SuperStepMessage) GetSrcVertexId() string {
+	if m != nil {
+		return m.SrcVertexId
+	}
+	return ""
 }
 
 func (m *SuperStepMessage) GetDestVertexId() string {
@@ -341,40 +357,87 @@ func (m *SuperStepMessage) GetMessage() *types.Any {
 	return nil
 }
 
+// SuperStepMessageAck is used to guarantee receipt messages at each end of super step
+type SuperStepMessageAck struct {
+	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+}
+
+func (m *SuperStepMessageAck) Reset()      { *m = SuperStepMessageAck{} }
+func (*SuperStepMessageAck) ProtoMessage() {}
+func (*SuperStepMessageAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_213c0bb044472049, []int{7}
+}
+func (m *SuperStepMessageAck) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *SuperStepMessageAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_SuperStepMessageAck.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *SuperStepMessageAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SuperStepMessageAck.Merge(m, src)
+}
+func (m *SuperStepMessageAck) XXX_Size() int {
+	return m.Size()
+}
+func (m *SuperStepMessageAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_SuperStepMessageAck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SuperStepMessageAck proto.InternalMessageInfo
+
+func (m *SuperStepMessageAck) GetUuid() string {
+	if m != nil {
+		return m.Uuid
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*InitVertex)(nil), "InitVertex")
-	proto.RegisterType((*InitVertexCompleted)(nil), "InitVertexCompleted")
+	proto.RegisterType((*InitVertexAck)(nil), "InitVertexAck")
 	proto.RegisterType((*LoadVertex)(nil), "LoadVertex")
-	proto.RegisterType((*LoadVertexCompleted)(nil), "LoadVertexCompleted")
+	proto.RegisterType((*LoadVertexAck)(nil), "LoadVertexAck")
 	proto.RegisterType((*Compute)(nil), "Compute")
-	proto.RegisterType((*ComputeCompleted)(nil), "ComputeCompleted")
+	proto.RegisterType((*ComputeAck)(nil), "ComputeAck")
 	proto.RegisterType((*SuperStepMessage)(nil), "SuperStepMessage")
+	proto.RegisterType((*SuperStepMessageAck)(nil), "SuperStepMessageAck")
 }
 
 func init() { proto.RegisterFile("command.proto", fileDescriptor_213c0bb044472049) }
 
 var fileDescriptor_213c0bb044472049 = []byte{
-	// 310 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4d, 0xce, 0xcf, 0xcd,
-	0x4d, 0xcc, 0x4b, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x97, 0x92, 0x4c, 0xcf, 0xcf, 0x4f, 0xcf,
-	0x49, 0xd5, 0x07, 0xf3, 0x92, 0x4a, 0xd3, 0xf4, 0x13, 0xf3, 0x2a, 0x21, 0x52, 0x4a, 0x9a, 0x5c,
-	0x5c, 0x9e, 0x79, 0x99, 0x25, 0x61, 0xa9, 0x45, 0x25, 0xa9, 0x15, 0x42, 0xd2, 0x5c, 0x9c, 0x65,
-	0x60, 0x56, 0x7c, 0x66, 0x8a, 0x04, 0x93, 0x02, 0xa3, 0x06, 0x67, 0x10, 0x07, 0x44, 0xc0, 0x33,
-	0x45, 0xc9, 0x88, 0x4b, 0x18, 0xa1, 0xd4, 0x39, 0x3f, 0xb7, 0x20, 0x27, 0xb5, 0x24, 0x35, 0x05,
-	0x55, 0x0f, 0x23, 0x9a, 0x1e, 0x1e, 0x2e, 0x2e, 0x9f, 0xfc, 0xc4, 0x14, 0x88, 0x1e, 0x90, 0x09,
-	0x08, 0x1e, 0x91, 0x26, 0x68, 0x70, 0xb1, 0x83, 0x54, 0x96, 0x96, 0xa4, 0x0a, 0xc9, 0x72, 0x71,
-	0x15, 0x97, 0x16, 0xa4, 0x16, 0xc5, 0x17, 0x97, 0xa4, 0x16, 0x80, 0x15, 0xb2, 0x04, 0x71, 0x82,
-	0x45, 0x82, 0x4b, 0x52, 0x0b, 0x94, 0xdc, 0xb9, 0x04, 0xa0, 0x2a, 0x89, 0x33, 0x5a, 0x48, 0x8c,
-	0x8b, 0x2d, 0x23, 0x31, 0xa7, 0x24, 0x15, 0xe2, 0x55, 0x8e, 0x20, 0x28, 0x4f, 0xa9, 0x9d, 0x91,
-	0x4b, 0x20, 0x18, 0x66, 0xac, 0x6f, 0x6a, 0x71, 0x71, 0x62, 0x3a, 0x21, 0xcb, 0x85, 0x54, 0xb8,
-	0xf8, 0x52, 0x52, 0x8b, 0x4b, 0xe2, 0xd1, 0x83, 0x8f, 0x07, 0x24, 0x1a, 0x06, 0xb3, 0x51, 0x8f,
-	0x8b, 0x3d, 0x17, 0x62, 0x9e, 0x04, 0xb3, 0x02, 0xa3, 0x06, 0xb7, 0x91, 0x88, 0x1e, 0x24, 0x6a,
-	0xf4, 0x60, 0x51, 0xa3, 0xe7, 0x98, 0x57, 0x19, 0x04, 0x53, 0xe4, 0x64, 0x72, 0xe1, 0xa1, 0x1c,
-	0xc3, 0x8d, 0x87, 0x72, 0x0c, 0x1f, 0x1e, 0xca, 0x31, 0x36, 0x3c, 0x92, 0x63, 0x5c, 0xf1, 0x48,
-	0x8e, 0xf1, 0xc4, 0x23, 0x39, 0xc6, 0x0b, 0x8f, 0xe4, 0x18, 0x1f, 0x3c, 0x92, 0x63, 0x7c, 0xf1,
-	0x48, 0x8e, 0xe1, 0xc3, 0x23, 0x39, 0xc6, 0x09, 0x8f, 0xe5, 0x18, 0x2e, 0x3c, 0x96, 0x63, 0xb8,
-	0xf1, 0x58, 0x8e, 0x21, 0x89, 0x0d, 0x6c, 0x98, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0x5f, 0x11,
-	0x99, 0xd6, 0x06, 0x02, 0x00, 0x00,
+	// 348 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x91, 0xcf, 0x4e, 0xc2, 0x40,
+	0x10, 0xc6, 0xbb, 0x88, 0xfc, 0x19, 0xc0, 0x98, 0x6a, 0x0c, 0x6a, 0x9c, 0x90, 0xc6, 0x03, 0x24,
+	0xa6, 0x24, 0xea, 0x0b, 0xa0, 0x27, 0x12, 0xbd, 0x94, 0x84, 0x2b, 0x29, 0xed, 0x8a, 0x44, 0xda,
+	0x6d, 0xba, 0x5b, 0x23, 0x37, 0x1f, 0xc1, 0xc7, 0xf0, 0x2d, 0xbc, 0x7a, 0xe4, 0xc8, 0x51, 0x96,
+	0x8b, 0x47, 0x1e, 0xc1, 0xb0, 0xa5, 0xa0, 0x8d, 0x09, 0xb7, 0x99, 0xe9, 0x6f, 0xbe, 0x7e, 0xdf,
+	0x0e, 0x54, 0x1c, 0xe6, 0x79, 0xb6, 0xef, 0x9a, 0x41, 0xc8, 0x04, 0x3b, 0x39, 0x1e, 0x30, 0x36,
+	0x18, 0xd1, 0xa6, 0xea, 0xfa, 0xd1, 0x43, 0xd3, 0xf6, 0xc7, 0xf1, 0x27, 0xa3, 0x01, 0xd0, 0xf6,
+	0x87, 0xa2, 0x4b, 0x43, 0x41, 0x5f, 0xf4, 0x53, 0x28, 0x3e, 0xab, 0xaa, 0x37, 0x74, 0xab, 0x99,
+	0x1a, 0xa9, 0x17, 0xad, 0x42, 0x3c, 0x68, 0xbb, 0xc6, 0x05, 0x54, 0x36, 0x68, 0xcb, 0x79, 0xfa,
+	0x4b, 0x93, 0x14, 0x5d, 0x06, 0xb8, 0x63, 0xb6, 0x1b, 0xd3, 0xcb, 0xdd, 0x4d, 0xb7, 0x75, 0xb7,
+	0x0e, 0xf9, 0x5b, 0xe6, 0x05, 0x91, 0xa0, 0xfa, 0x19, 0x00, 0x8f, 0x02, 0x1a, 0xf6, 0xb8, 0xa0,
+	0x81, 0x02, 0xb3, 0x56, 0x51, 0x4d, 0x3a, 0x82, 0x06, 0x46, 0x0b, 0x60, 0x45, 0x6e, 0x13, 0xd5,
+	0x8f, 0x20, 0xf7, 0x68, 0x8f, 0x04, 0x8d, 0x83, 0x15, 0xac, 0x55, 0x67, 0x7c, 0x10, 0xd8, 0xef,
+	0x24, 0x82, 0xf7, 0x94, 0x73, 0x7b, 0x40, 0x75, 0x1d, 0xb2, 0x51, 0xb4, 0x16, 0x51, 0x75, 0xca,
+	0x4a, 0x26, 0x65, 0x45, 0x37, 0xa0, 0xc2, 0x43, 0xa7, 0xb7, 0x31, 0xb0, 0xa3, 0x76, 0x4b, 0x3c,
+	0x74, 0xba, 0x89, 0x87, 0x73, 0xd8, 0x73, 0x29, 0x17, 0xbf, 0xa0, 0xac, 0x82, 0xca, 0xcb, 0xe9,
+	0x9a, 0x32, 0x21, 0xef, 0xc5, 0x3e, 0xaa, 0xbb, 0x35, 0x52, 0x2f, 0x5d, 0x1e, 0x9a, 0xf1, 0x01,
+	0xcd, 0xe4, 0x80, 0x66, 0xcb, 0x1f, 0x5b, 0x09, 0x64, 0x34, 0xe0, 0x20, 0x1d, 0x60, 0xf9, 0x1a,
+	0xff, 0x64, 0xb8, 0xb9, 0x9e, 0xcc, 0x50, 0x9b, 0xce, 0x50, 0x5b, 0xcc, 0x90, 0xbc, 0x4a, 0x24,
+	0xef, 0x12, 0xc9, 0xa7, 0x44, 0x32, 0x91, 0x48, 0xbe, 0x24, 0x92, 0x6f, 0x89, 0xda, 0x42, 0x22,
+	0x79, 0x9b, 0xa3, 0x36, 0x99, 0xa3, 0x36, 0x9d, 0xa3, 0xd6, 0xcf, 0xa9, 0xff, 0x5e, 0xfd, 0x04,
+	0x00, 0x00, 0xff, 0xff, 0xe1, 0x74, 0x93, 0x76, 0x57, 0x02, 0x00, 0x00,
 }
 
 func (this *InitVertex) Equal(that interface{}) bool {
@@ -401,14 +464,14 @@ func (this *InitVertex) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *InitVertexCompleted) Equal(that interface{}) bool {
+func (this *InitVertexAck) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*InitVertexCompleted)
+	that1, ok := that.(*InitVertexAck)
 	if !ok {
-		that2, ok := that.(InitVertexCompleted)
+		that2, ok := that.(InitVertexAck)
 		if ok {
 			that1 = &that2
 		} else {
@@ -446,14 +509,14 @@ func (this *LoadVertex) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *LoadVertexCompleted) Equal(that interface{}) bool {
+func (this *LoadVertexAck) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*LoadVertexCompleted)
+	that1, ok := that.(*LoadVertexAck)
 	if !ok {
-		that2, ok := that.(LoadVertexCompleted)
+		that2, ok := that.(LoadVertexAck)
 		if ok {
 			that1 = &that2
 		} else {
@@ -494,14 +557,14 @@ func (this *Compute) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *ComputeCompleted) Equal(that interface{}) bool {
+func (this *ComputeAck) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*ComputeCompleted)
+	that1, ok := that.(*ComputeAck)
 	if !ok {
-		that2, ok := that.(ComputeCompleted)
+		that2, ok := that.(ComputeAck)
 		if ok {
 			that1 = &that2
 		} else {
@@ -540,13 +603,43 @@ func (this *SuperStepMessage) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
+	if this.Uuid != that1.Uuid {
+		return false
+	}
 	if this.SuperStep != that1.SuperStep {
+		return false
+	}
+	if this.SrcVertexId != that1.SrcVertexId {
 		return false
 	}
 	if this.DestVertexId != that1.DestVertexId {
 		return false
 	}
 	if !this.Message.Equal(that1.Message) {
+		return false
+	}
+	return true
+}
+func (this *SuperStepMessageAck) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*SuperStepMessageAck)
+	if !ok {
+		that2, ok := that.(SuperStepMessageAck)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Uuid != that1.Uuid {
 		return false
 	}
 	return true
@@ -561,12 +654,12 @@ func (this *InitVertex) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *InitVertexCompleted) GoString() string {
+func (this *InitVertexAck) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&command.InitVertexCompleted{")
+	s = append(s, "&command.InitVertexAck{")
 	s = append(s, "VertexId: "+fmt.Sprintf("%#v", this.VertexId)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -580,12 +673,12 @@ func (this *LoadVertex) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *LoadVertexCompleted) GoString() string {
+func (this *LoadVertexAck) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&command.LoadVertexCompleted{")
+	s = append(s, "&command.LoadVertexAck{")
 	s = append(s, "VertexId: "+fmt.Sprintf("%#v", this.VertexId)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -600,12 +693,12 @@ func (this *Compute) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *ComputeCompleted) GoString() string {
+func (this *ComputeAck) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 6)
-	s = append(s, "&command.ComputeCompleted{")
+	s = append(s, "&command.ComputeAck{")
 	s = append(s, "VertexId: "+fmt.Sprintf("%#v", this.VertexId)+",\n")
 	s = append(s, "Halted: "+fmt.Sprintf("%#v", this.Halted)+",\n")
 	s = append(s, "}")
@@ -615,13 +708,25 @@ func (this *SuperStepMessage) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 7)
+	s := make([]string, 0, 9)
 	s = append(s, "&command.SuperStepMessage{")
+	s = append(s, "Uuid: "+fmt.Sprintf("%#v", this.Uuid)+",\n")
 	s = append(s, "SuperStep: "+fmt.Sprintf("%#v", this.SuperStep)+",\n")
+	s = append(s, "SrcVertexId: "+fmt.Sprintf("%#v", this.SrcVertexId)+",\n")
 	s = append(s, "DestVertexId: "+fmt.Sprintf("%#v", this.DestVertexId)+",\n")
 	if this.Message != nil {
 		s = append(s, "Message: "+fmt.Sprintf("%#v", this.Message)+",\n")
 	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *SuperStepMessageAck) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&command.SuperStepMessageAck{")
+	s = append(s, "Uuid: "+fmt.Sprintf("%#v", this.Uuid)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -657,7 +762,7 @@ func (m *InitVertex) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *InitVertexCompleted) Marshal() (dAtA []byte, err error) {
+func (m *InitVertexAck) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -667,7 +772,7 @@ func (m *InitVertexCompleted) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *InitVertexCompleted) MarshalTo(dAtA []byte) (int, error) {
+func (m *InitVertexAck) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -699,7 +804,7 @@ func (m *LoadVertex) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *LoadVertexCompleted) Marshal() (dAtA []byte, err error) {
+func (m *LoadVertexAck) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -709,7 +814,7 @@ func (m *LoadVertexCompleted) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *LoadVertexCompleted) MarshalTo(dAtA []byte) (int, error) {
+func (m *LoadVertexAck) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -746,7 +851,7 @@ func (m *Compute) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ComputeCompleted) Marshal() (dAtA []byte, err error) {
+func (m *ComputeAck) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -756,7 +861,7 @@ func (m *ComputeCompleted) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *ComputeCompleted) MarshalTo(dAtA []byte) (int, error) {
+func (m *ComputeAck) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -795,19 +900,31 @@ func (m *SuperStepMessage) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.Uuid) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(len(m.Uuid)))
+		i += copy(dAtA[i:], m.Uuid)
+	}
 	if m.SuperStep != 0 {
-		dAtA[i] = 0x8
+		dAtA[i] = 0x10
 		i++
 		i = encodeVarintCommand(dAtA, i, uint64(m.SuperStep))
 	}
+	if len(m.SrcVertexId) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(len(m.SrcVertexId)))
+		i += copy(dAtA[i:], m.SrcVertexId)
+	}
 	if len(m.DestVertexId) > 0 {
-		dAtA[i] = 0x12
+		dAtA[i] = 0x22
 		i++
 		i = encodeVarintCommand(dAtA, i, uint64(len(m.DestVertexId)))
 		i += copy(dAtA[i:], m.DestVertexId)
 	}
 	if m.Message != nil {
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintCommand(dAtA, i, uint64(m.Message.Size()))
 		n1, err := m.Message.MarshalTo(dAtA[i:])
@@ -815,6 +932,30 @@ func (m *SuperStepMessage) MarshalTo(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i += n1
+	}
+	return i, nil
+}
+
+func (m *SuperStepMessageAck) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SuperStepMessageAck) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Uuid) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(len(m.Uuid)))
+		i += copy(dAtA[i:], m.Uuid)
 	}
 	return i, nil
 }
@@ -841,7 +982,7 @@ func (m *InitVertex) Size() (n int) {
 	return n
 }
 
-func (m *InitVertexCompleted) Size() (n int) {
+func (m *InitVertexAck) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -863,7 +1004,7 @@ func (m *LoadVertex) Size() (n int) {
 	return n
 }
 
-func (m *LoadVertexCompleted) Size() (n int) {
+func (m *LoadVertexAck) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -888,7 +1029,7 @@ func (m *Compute) Size() (n int) {
 	return n
 }
 
-func (m *ComputeCompleted) Size() (n int) {
+func (m *ComputeAck) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -910,8 +1051,16 @@ func (m *SuperStepMessage) Size() (n int) {
 	}
 	var l int
 	_ = l
+	l = len(m.Uuid)
+	if l > 0 {
+		n += 1 + l + sovCommand(uint64(l))
+	}
 	if m.SuperStep != 0 {
 		n += 1 + sovCommand(uint64(m.SuperStep))
+	}
+	l = len(m.SrcVertexId)
+	if l > 0 {
+		n += 1 + l + sovCommand(uint64(l))
 	}
 	l = len(m.DestVertexId)
 	if l > 0 {
@@ -919,6 +1068,19 @@ func (m *SuperStepMessage) Size() (n int) {
 	}
 	if m.Message != nil {
 		l = m.Message.Size()
+		n += 1 + l + sovCommand(uint64(l))
+	}
+	return n
+}
+
+func (m *SuperStepMessageAck) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Uuid)
+	if l > 0 {
 		n += 1 + l + sovCommand(uint64(l))
 	}
 	return n
@@ -947,11 +1109,11 @@ func (this *InitVertex) String() string {
 	}, "")
 	return s
 }
-func (this *InitVertexCompleted) String() string {
+func (this *InitVertexAck) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&InitVertexCompleted{`,
+	s := strings.Join([]string{`&InitVertexAck{`,
 		`VertexId:` + fmt.Sprintf("%v", this.VertexId) + `,`,
 		`}`,
 	}, "")
@@ -966,11 +1128,11 @@ func (this *LoadVertex) String() string {
 	}, "")
 	return s
 }
-func (this *LoadVertexCompleted) String() string {
+func (this *LoadVertexAck) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&LoadVertexCompleted{`,
+	s := strings.Join([]string{`&LoadVertexAck{`,
 		`VertexId:` + fmt.Sprintf("%v", this.VertexId) + `,`,
 		`}`,
 	}, "")
@@ -986,11 +1148,11 @@ func (this *Compute) String() string {
 	}, "")
 	return s
 }
-func (this *ComputeCompleted) String() string {
+func (this *ComputeAck) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&ComputeCompleted{`,
+	s := strings.Join([]string{`&ComputeAck{`,
 		`VertexId:` + fmt.Sprintf("%v", this.VertexId) + `,`,
 		`Halted:` + fmt.Sprintf("%v", this.Halted) + `,`,
 		`}`,
@@ -1002,9 +1164,21 @@ func (this *SuperStepMessage) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&SuperStepMessage{`,
+		`Uuid:` + fmt.Sprintf("%v", this.Uuid) + `,`,
 		`SuperStep:` + fmt.Sprintf("%v", this.SuperStep) + `,`,
+		`SrcVertexId:` + fmt.Sprintf("%v", this.SrcVertexId) + `,`,
 		`DestVertexId:` + fmt.Sprintf("%v", this.DestVertexId) + `,`,
 		`Message:` + strings.Replace(fmt.Sprintf("%v", this.Message), "Any", "types.Any", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SuperStepMessageAck) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SuperStepMessageAck{`,
+		`Uuid:` + fmt.Sprintf("%v", this.Uuid) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1102,7 +1276,7 @@ func (m *InitVertex) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *InitVertexCompleted) Unmarshal(dAtA []byte) error {
+func (m *InitVertexAck) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1125,10 +1299,10 @@ func (m *InitVertexCompleted) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: InitVertexCompleted: wiretype end group for non-group")
+			return fmt.Errorf("proto: InitVertexAck: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: InitVertexCompleted: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: InitVertexAck: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1240,7 +1414,7 @@ func (m *LoadVertex) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *LoadVertexCompleted) Unmarshal(dAtA []byte) error {
+func (m *LoadVertexAck) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1263,10 +1437,10 @@ func (m *LoadVertexCompleted) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: LoadVertexCompleted: wiretype end group for non-group")
+			return fmt.Errorf("proto: LoadVertexAck: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: LoadVertexCompleted: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: LoadVertexAck: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1397,7 +1571,7 @@ func (m *Compute) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ComputeCompleted) Unmarshal(dAtA []byte) error {
+func (m *ComputeAck) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1420,10 +1594,10 @@ func (m *ComputeCompleted) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ComputeCompleted: wiretype end group for non-group")
+			return fmt.Errorf("proto: ComputeAck: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ComputeCompleted: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ComputeAck: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1532,6 +1706,38 @@ func (m *SuperStepMessage) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Uuid", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCommand
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Uuid = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SuperStep", wireType)
 			}
@@ -1550,7 +1756,39 @@ func (m *SuperStepMessage) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 2:
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SrcVertexId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCommand
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SrcVertexId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DestVertexId", wireType)
 			}
@@ -1582,7 +1820,7 @@ func (m *SuperStepMessage) Unmarshal(dAtA []byte) error {
 			}
 			m.DestVertexId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 3:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
 			}
@@ -1617,6 +1855,91 @@ func (m *SuperStepMessage) Unmarshal(dAtA []byte) error {
 			if err := m.Message.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommand(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SuperStepMessageAck) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommand
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SuperStepMessageAck: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SuperStepMessageAck: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Uuid", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCommand
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Uuid = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

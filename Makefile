@@ -18,11 +18,11 @@ build: dep plugin protogen
 
 .PHONY: test
 test: dep plugin protogen
-	@$(GOCMD) test -v -race ./...
+	@$(GOCMD) test -v ./...
 
 .PHONY: coverage
 coverage: dep protogen
-	@$(GOCMD) test -race -coverpkg=./... -coverprofile=coverage.txt ./...
+	@$(GOCMD) test -coverpkg=./... -coverprofile=coverage.txt ./...
 
 
 PROTO_FILES := $(shell find . \( -path "./vendor" \) -prune -o -type f -name '*.proto' -print)

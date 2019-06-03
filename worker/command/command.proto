@@ -5,25 +5,31 @@ import "google/protobuf/any.proto";
 message InitVertex {
     string vertex_id = 2;
 }
-message InitVertexCompleted {
+message InitVertexAck {
     string vertex_id = 1;
 }
 
 message LoadVertex {}
-message LoadVertexCompleted {
+message LoadVertexAck {
     string vertex_id = 1;
 }
 
 message Compute {
     uint64 super_step = 1;
 }
-message ComputeCompleted {
+message ComputeAck {
     string vertex_id = 1;
     bool halted = 2;
 }
 
 message SuperStepMessage {
-    uint64 super_step = 1;
-    string dest_vertex_id = 2;
-    google.protobuf.Any message = 3;
+    string uuid = 1;
+    uint64 super_step = 2;
+    string src_vertex_id = 3;
+    string dest_vertex_id = 4;
+    google.protobuf.Any message = 5;
+}
+// SuperStepMessageAck is used to guarantee receipt messages at each end of super step
+message SuperStepMessageAck {
+    string uuid = 1;
 }

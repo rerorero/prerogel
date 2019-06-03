@@ -5,6 +5,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/gogo/protobuf/types"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus"
@@ -39,7 +40,9 @@ func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 		return err
 	}
 	c.ctx.Send(c.ctx.Parent(), &command.SuperStepMessage{
+		Uuid:         uuid.New().String(),
 		SuperStep:    c.superStep,
+		SrcVertexId:  string(c.vertexActor.vertex.GetID()),
 		DestVertexId: string(dest),
 		Message:      msg,
 	})
@@ -72,7 +75,7 @@ func (state *vertexActor) Receive(context actor.Context) {
 		state.receivedMessages = nil
 		state.logger = state.logger.WithField("vertexId", state.vertex.GetID()).Logger
 		state.logInfo("vertex has initialized")
-		context.Respond(&command.InitVertexCompleted{
+		context.Respond(&command.InitVertexAck{
 			VertexId: string(state.vertex.GetID()),
 		})
 
@@ -85,7 +88,7 @@ func (state *vertexActor) Receive(context actor.Context) {
 			state.fail(errors.New("failed to load vertex"))
 			return
 		}
-		context.Respond(&command.LoadVertexCompleted{
+		context.Respond(&command.LoadVertexAck{
 			VertexId: string(state.vertex.GetID()),
 		})
 
@@ -108,6 +111,9 @@ func (state *vertexActor) Receive(context actor.Context) {
 		// TODO: verify cmd.SuperStep
 		state.receivedMessages = append(state.receivedMessages, cmd.Message)
 		state.halted = false
+		context.Respond(&command.SuperStepMessageAck{
+			Uuid: cmd.Uuid,
+		})
 
 	case *actor.Started:
 		state.logInfo("actor started")
@@ -136,7 +142,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 
 	if state.halted {
 		state.logInfo("vertex is halted")
-		ctx.Respond(&command.ComputeCompleted{
+		ctx.Respond(&command.ComputeAck{
 			VertexId: string(id),
 			Halted:   state.halted,
 		})
@@ -155,7 +161,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 	// clear messages
 	state.receivedMessages = nil
 
-	ctx.Respond(&command.ComputeCompleted{
+	ctx.Respond(&command.ComputeAck{
 		VertexId: string(id),
 		Halted:   state.halted,
 	})
