@@ -25,7 +25,7 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type InitVertex struct {
-	VertexId string `protobuf:"bytes,2,opt,name=vertex_id,json=vertexId,proto3" json:"vertex_id,omitempty"`
+	VertexId string `protobuf:"bytes,1,opt,name=vertex_id,json=vertexId,proto3" json:"vertex_id,omitempty"`
 }
 
 func (m *InitVertex) Reset()      { *m = InitVertex{} }
@@ -401,6 +401,100 @@ func (m *SuperStepMessageAck) GetUuid() string {
 	return ""
 }
 
+type InitPartition struct {
+	PartitionId    uint64 `protobuf:"varint,1,opt,name=partition_id,json=partitionId,proto3" json:"partition_id,omitempty"`
+	NrOfPartitions uint64 `protobuf:"varint,2,opt,name=nr_of_partitions,json=nrOfPartitions,proto3" json:"nr_of_partitions,omitempty"`
+}
+
+func (m *InitPartition) Reset()      { *m = InitPartition{} }
+func (*InitPartition) ProtoMessage() {}
+func (*InitPartition) Descriptor() ([]byte, []int) {
+	return fileDescriptor_213c0bb044472049, []int{8}
+}
+func (m *InitPartition) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *InitPartition) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_InitPartition.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *InitPartition) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InitPartition.Merge(m, src)
+}
+func (m *InitPartition) XXX_Size() int {
+	return m.Size()
+}
+func (m *InitPartition) XXX_DiscardUnknown() {
+	xxx_messageInfo_InitPartition.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InitPartition proto.InternalMessageInfo
+
+func (m *InitPartition) GetPartitionId() uint64 {
+	if m != nil {
+		return m.PartitionId
+	}
+	return 0
+}
+
+func (m *InitPartition) GetNrOfPartitions() uint64 {
+	if m != nil {
+		return m.NrOfPartitions
+	}
+	return 0
+}
+
+type InitPartitionAck struct {
+	PartitionId uint64 `protobuf:"varint,1,opt,name=partition_id,json=partitionId,proto3" json:"partition_id,omitempty"`
+}
+
+func (m *InitPartitionAck) Reset()      { *m = InitPartitionAck{} }
+func (*InitPartitionAck) ProtoMessage() {}
+func (*InitPartitionAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_213c0bb044472049, []int{9}
+}
+func (m *InitPartitionAck) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *InitPartitionAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_InitPartitionAck.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *InitPartitionAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InitPartitionAck.Merge(m, src)
+}
+func (m *InitPartitionAck) XXX_Size() int {
+	return m.Size()
+}
+func (m *InitPartitionAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_InitPartitionAck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InitPartitionAck proto.InternalMessageInfo
+
+func (m *InitPartitionAck) GetPartitionId() uint64 {
+	if m != nil {
+		return m.PartitionId
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*InitVertex)(nil), "InitVertex")
 	proto.RegisterType((*InitVertexAck)(nil), "InitVertexAck")
@@ -410,34 +504,40 @@ func init() {
 	proto.RegisterType((*ComputeAck)(nil), "ComputeAck")
 	proto.RegisterType((*SuperStepMessage)(nil), "SuperStepMessage")
 	proto.RegisterType((*SuperStepMessageAck)(nil), "SuperStepMessageAck")
+	proto.RegisterType((*InitPartition)(nil), "InitPartition")
+	proto.RegisterType((*InitPartitionAck)(nil), "InitPartitionAck")
 }
 
 func init() { proto.RegisterFile("command.proto", fileDescriptor_213c0bb044472049) }
 
 var fileDescriptor_213c0bb044472049 = []byte{
-	// 348 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x91, 0xcf, 0x4e, 0xc2, 0x40,
-	0x10, 0xc6, 0xbb, 0x88, 0xfc, 0x19, 0xc0, 0x98, 0x6a, 0x0c, 0x6a, 0x9c, 0x90, 0xc6, 0x03, 0x24,
-	0xa6, 0x24, 0xea, 0x0b, 0xa0, 0x27, 0x12, 0xbd, 0x94, 0x84, 0x2b, 0x29, 0xed, 0x8a, 0x44, 0xda,
-	0x6d, 0xba, 0x5b, 0x23, 0x37, 0x1f, 0xc1, 0xc7, 0xf0, 0x2d, 0xbc, 0x7a, 0xe4, 0xc8, 0x51, 0x96,
-	0x8b, 0x47, 0x1e, 0xc1, 0xb0, 0xa5, 0xa0, 0x8d, 0x09, 0xb7, 0x99, 0xe9, 0x6f, 0xbe, 0x7e, 0xdf,
-	0x0e, 0x54, 0x1c, 0xe6, 0x79, 0xb6, 0xef, 0x9a, 0x41, 0xc8, 0x04, 0x3b, 0x39, 0x1e, 0x30, 0x36,
-	0x18, 0xd1, 0xa6, 0xea, 0xfa, 0xd1, 0x43, 0xd3, 0xf6, 0xc7, 0xf1, 0x27, 0xa3, 0x01, 0xd0, 0xf6,
-	0x87, 0xa2, 0x4b, 0x43, 0x41, 0x5f, 0xf4, 0x53, 0x28, 0x3e, 0xab, 0xaa, 0x37, 0x74, 0xab, 0x99,
-	0x1a, 0xa9, 0x17, 0xad, 0x42, 0x3c, 0x68, 0xbb, 0xc6, 0x05, 0x54, 0x36, 0x68, 0xcb, 0x79, 0xfa,
-	0x4b, 0x93, 0x14, 0x5d, 0x06, 0xb8, 0x63, 0xb6, 0x1b, 0xd3, 0xcb, 0xdd, 0x4d, 0xb7, 0x75, 0xb7,
-	0x0e, 0xf9, 0x5b, 0xe6, 0x05, 0x91, 0xa0, 0xfa, 0x19, 0x00, 0x8f, 0x02, 0x1a, 0xf6, 0xb8, 0xa0,
-	0x81, 0x02, 0xb3, 0x56, 0x51, 0x4d, 0x3a, 0x82, 0x06, 0x46, 0x0b, 0x60, 0x45, 0x6e, 0x13, 0xd5,
-	0x8f, 0x20, 0xf7, 0x68, 0x8f, 0x04, 0x8d, 0x83, 0x15, 0xac, 0x55, 0x67, 0x7c, 0x10, 0xd8, 0xef,
-	0x24, 0x82, 0xf7, 0x94, 0x73, 0x7b, 0x40, 0x75, 0x1d, 0xb2, 0x51, 0xb4, 0x16, 0x51, 0x75, 0xca,
-	0x4a, 0x26, 0x65, 0x45, 0x37, 0xa0, 0xc2, 0x43, 0xa7, 0xb7, 0x31, 0xb0, 0xa3, 0x76, 0x4b, 0x3c,
-	0x74, 0xba, 0x89, 0x87, 0x73, 0xd8, 0x73, 0x29, 0x17, 0xbf, 0xa0, 0xac, 0x82, 0xca, 0xcb, 0xe9,
-	0x9a, 0x32, 0x21, 0xef, 0xc5, 0x3e, 0xaa, 0xbb, 0x35, 0x52, 0x2f, 0x5d, 0x1e, 0x9a, 0xf1, 0x01,
-	0xcd, 0xe4, 0x80, 0x66, 0xcb, 0x1f, 0x5b, 0x09, 0x64, 0x34, 0xe0, 0x20, 0x1d, 0x60, 0xf9, 0x1a,
-	0xff, 0x64, 0xb8, 0xb9, 0x9e, 0xcc, 0x50, 0x9b, 0xce, 0x50, 0x5b, 0xcc, 0x90, 0xbc, 0x4a, 0x24,
-	0xef, 0x12, 0xc9, 0xa7, 0x44, 0x32, 0x91, 0x48, 0xbe, 0x24, 0x92, 0x6f, 0x89, 0xda, 0x42, 0x22,
-	0x79, 0x9b, 0xa3, 0x36, 0x99, 0xa3, 0x36, 0x9d, 0xa3, 0xd6, 0xcf, 0xa9, 0xff, 0x5e, 0xfd, 0x04,
-	0x00, 0x00, 0xff, 0xff, 0xe1, 0x74, 0x93, 0x76, 0x57, 0x02, 0x00, 0x00,
+	// 406 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x91, 0xcb, 0xea, 0xd3, 0x40,
+	0x14, 0xc6, 0x33, 0x35, 0xf6, 0x72, 0x7a, 0xa1, 0x8c, 0x22, 0x55, 0x71, 0xa8, 0x83, 0x8b, 0x14,
+	0x24, 0x05, 0x2f, 0x0f, 0x50, 0x5d, 0x15, 0x14, 0x25, 0x85, 0xae, 0x84, 0x90, 0x26, 0xd3, 0x1a,
+	0x6c, 0x32, 0x61, 0x66, 0x22, 0x76, 0xe7, 0x23, 0xf8, 0x18, 0xbe, 0x85, 0x5b, 0x97, 0x5d, 0x76,
+	0x69, 0xd3, 0x8d, 0xcb, 0x3e, 0x82, 0x64, 0xd2, 0xa4, 0x5a, 0xe4, 0xdf, 0xdd, 0x9c, 0x2f, 0xbf,
+	0xf3, 0xe5, 0x3b, 0xe7, 0x40, 0xd7, 0xe7, 0x51, 0xe4, 0xc5, 0x81, 0x9d, 0x08, 0xae, 0xf8, 0x83,
+	0xfb, 0x2b, 0xce, 0x57, 0x6b, 0x36, 0xd6, 0xd5, 0x22, 0x5d, 0x8e, 0xbd, 0x78, 0x53, 0x7c, 0xa2,
+	0x23, 0x80, 0x69, 0x1c, 0xaa, 0x39, 0x13, 0x8a, 0x7d, 0xc1, 0x0f, 0xa1, 0xf5, 0x59, 0xbf, 0xdc,
+	0x30, 0x18, 0xa0, 0x21, 0xb2, 0x5a, 0x4e, 0xb3, 0x10, 0xa6, 0x01, 0x7d, 0x0a, 0xdd, 0x33, 0x3a,
+	0xf1, 0x3f, 0xdd, 0x4c, 0x77, 0x00, 0xde, 0x70, 0x2f, 0x28, 0xe8, 0xbc, 0xf7, 0x5c, 0x5d, 0xed,
+	0xb5, 0xa0, 0xf1, 0x9a, 0x47, 0x49, 0xaa, 0x18, 0x7e, 0x04, 0x20, 0xd3, 0x84, 0x09, 0x57, 0x2a,
+	0x96, 0x68, 0xd0, 0x74, 0x5a, 0x5a, 0x99, 0x29, 0x96, 0xd0, 0x09, 0xc0, 0x89, 0xbc, 0x66, 0x8a,
+	0xef, 0x41, 0xfd, 0xa3, 0xb7, 0x56, 0x2c, 0x18, 0xd4, 0x86, 0xc8, 0x6a, 0x3a, 0xa7, 0x8a, 0xfe,
+	0x40, 0xd0, 0x9f, 0x95, 0x86, 0x6f, 0x99, 0x94, 0xde, 0x8a, 0x61, 0x0c, 0x66, 0x9a, 0x56, 0x26,
+	0xfa, 0x7d, 0x11, 0xa5, 0x76, 0x11, 0x05, 0x53, 0xe8, 0x4a, 0xe1, 0xbb, 0xe7, 0x00, 0xb7, 0x74,
+	0x6f, 0x5b, 0x0a, 0x7f, 0x5e, 0x66, 0x78, 0x02, 0xbd, 0x80, 0x49, 0xf5, 0x17, 0x64, 0x6a, 0xa8,
+	0x93, 0xab, 0x15, 0x65, 0x43, 0x23, 0x2a, 0x72, 0x0c, 0x6e, 0x0f, 0x91, 0xd5, 0x7e, 0x76, 0xd7,
+	0x2e, 0x0e, 0x68, 0x97, 0x07, 0xb4, 0x27, 0xf1, 0xc6, 0x29, 0x21, 0x3a, 0x82, 0x3b, 0x97, 0x03,
+	0xe4, 0xdb, 0xf8, 0xcf, 0x0c, 0xf4, 0x43, 0x71, 0xc3, 0xf7, 0x9e, 0x50, 0xa1, 0x0a, 0x79, 0x8c,
+	0x1f, 0x43, 0x27, 0x29, 0x8b, 0x72, 0x6b, 0xa6, 0xd3, 0xae, 0xb4, 0x69, 0x80, 0x2d, 0xe8, 0xc7,
+	0xc2, 0xe5, 0x4b, 0xb7, 0x12, 0xe5, 0x69, 0xfa, 0x5e, 0x2c, 0xde, 0x2d, 0x2b, 0x2f, 0x49, 0x5f,
+	0x42, 0xff, 0x1f, 0xf7, 0x3c, 0xc5, 0xf5, 0x1f, 0xbc, 0x7a, 0xb1, 0xdd, 0x13, 0x63, 0xb7, 0x27,
+	0xc6, 0x71, 0x4f, 0xd0, 0xd7, 0x8c, 0xa0, 0xef, 0x19, 0x41, 0x3f, 0x33, 0x82, 0xb6, 0x19, 0x41,
+	0xbf, 0x32, 0x82, 0x7e, 0x67, 0xc4, 0x38, 0x66, 0x04, 0x7d, 0x3b, 0x10, 0x63, 0x7b, 0x20, 0xc6,
+	0xee, 0x40, 0x8c, 0x45, 0x5d, 0x2f, 0xe3, 0xf9, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x39, 0x5e,
+	0x30, 0x9b, 0xec, 0x02, 0x00, 0x00,
 }
 
 func (this *InitVertex) Equal(that interface{}) bool {
@@ -644,6 +744,57 @@ func (this *SuperStepMessageAck) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *InitPartition) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*InitPartition)
+	if !ok {
+		that2, ok := that.(InitPartition)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.PartitionId != that1.PartitionId {
+		return false
+	}
+	if this.NrOfPartitions != that1.NrOfPartitions {
+		return false
+	}
+	return true
+}
+func (this *InitPartitionAck) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*InitPartitionAck)
+	if !ok {
+		that2, ok := that.(InitPartitionAck)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.PartitionId != that1.PartitionId {
+		return false
+	}
+	return true
+}
 func (this *InitVertex) GoString() string {
 	if this == nil {
 		return "nil"
@@ -730,6 +881,27 @@ func (this *SuperStepMessageAck) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
+func (this *InitPartition) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&command.InitPartition{")
+	s = append(s, "PartitionId: "+fmt.Sprintf("%#v", this.PartitionId)+",\n")
+	s = append(s, "NrOfPartitions: "+fmt.Sprintf("%#v", this.NrOfPartitions)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *InitPartitionAck) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&command.InitPartitionAck{")
+	s = append(s, "PartitionId: "+fmt.Sprintf("%#v", this.PartitionId)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
 func valueToGoStringCommand(v interface{}, typ string) string {
 	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
@@ -754,7 +926,7 @@ func (m *InitVertex) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if len(m.VertexId) > 0 {
-		dAtA[i] = 0x12
+		dAtA[i] = 0xa
 		i++
 		i = encodeVarintCommand(dAtA, i, uint64(len(m.VertexId)))
 		i += copy(dAtA[i:], m.VertexId)
@@ -960,6 +1132,57 @@ func (m *SuperStepMessageAck) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *InitPartition) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitPartition) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.PartitionId != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(m.PartitionId))
+	}
+	if m.NrOfPartitions != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(m.NrOfPartitions))
+	}
+	return i, nil
+}
+
+func (m *InitPartitionAck) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitPartitionAck) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.PartitionId != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(m.PartitionId))
+	}
+	return i, nil
+}
+
 func encodeVarintCommand(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -1086,6 +1309,33 @@ func (m *SuperStepMessageAck) Size() (n int) {
 	return n
 }
 
+func (m *InitPartition) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PartitionId != 0 {
+		n += 1 + sovCommand(uint64(m.PartitionId))
+	}
+	if m.NrOfPartitions != 0 {
+		n += 1 + sovCommand(uint64(m.NrOfPartitions))
+	}
+	return n
+}
+
+func (m *InitPartitionAck) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PartitionId != 0 {
+		n += 1 + sovCommand(uint64(m.PartitionId))
+	}
+	return n
+}
+
 func sovCommand(x uint64) (n int) {
 	for {
 		n++
@@ -1183,6 +1433,27 @@ func (this *SuperStepMessageAck) String() string {
 	}, "")
 	return s
 }
+func (this *InitPartition) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&InitPartition{`,
+		`PartitionId:` + fmt.Sprintf("%v", this.PartitionId) + `,`,
+		`NrOfPartitions:` + fmt.Sprintf("%v", this.NrOfPartitions) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *InitPartitionAck) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&InitPartitionAck{`,
+		`PartitionId:` + fmt.Sprintf("%v", this.PartitionId) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func valueToStringCommand(v interface{}) string {
 	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
@@ -1220,7 +1491,7 @@ func (m *InitVertex) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: InitVertex: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 2:
+		case 1:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field VertexId", wireType)
 			}
@@ -1941,6 +2212,169 @@ func (m *SuperStepMessageAck) Unmarshal(dAtA []byte) error {
 			}
 			m.Uuid = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommand(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InitPartition) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommand
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitPartition: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitPartition: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PartitionId", wireType)
+			}
+			m.PartitionId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PartitionId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NrOfPartitions", wireType)
+			}
+			m.NrOfPartitions = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NrOfPartitions |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommand(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InitPartitionAck) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommand
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitPartitionAck: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitPartitionAck: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PartitionId", wireType)
+			}
+			m.PartitionId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PartitionId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCommand(dAtA[iNdEx:])

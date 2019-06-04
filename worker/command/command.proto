@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/any.proto";
 
 message InitVertex {
-    string vertex_id = 2;
+    string vertex_id = 1;
 }
 message InitVertexAck {
     string vertex_id = 1;
@@ -33,3 +33,12 @@ message SuperStepMessage {
 message SuperStepMessageAck {
     string uuid = 1;
 }
+
+message InitPartition {
+    uint64 partition_id = 1;
+    uint64 nr_of_partitions = 2;
+}
+message InitPartitionAck {
+    uint64 partition_id = 1;
+}
+

@@ -62,7 +62,7 @@ func NewVertexActor(plugin Plugin, logger *logrus.Logger) actor.Actor {
 	}
 }
 
-// Receive is handler of Actor message
+// Receive is message handler
 func (state *vertexActor) Receive(context actor.Context) {
 	switch cmd := context.Message().(type) {
 

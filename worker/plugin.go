@@ -41,4 +41,5 @@ type Vertex interface {
 // Plugin is a plugin that provides graph computation.
 type Plugin interface {
 	NewVertex(id VertexID) Vertex
+	ListVertexID(partitionId uint64) ([]VertexID, error)
 }
