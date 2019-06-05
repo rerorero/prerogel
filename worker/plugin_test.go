@@ -2,11 +2,16 @@ package worker
 
 // MockedPlugin is mocked Plugin struct
 type MockedPlugin struct {
-	NewVertexMock func(id VertexID) Vertex
+	NewVertexMock    func(id VertexID) Vertex
+	ListVertexIDMock func(partitionId uint64) ([]VertexID, error)
 }
 
 func (m *MockedPlugin) NewVertex(id VertexID) Vertex {
 	return m.NewVertexMock(id)
+}
+
+func (m *MockedPlugin) ListVertexID(partitionID uint64) ([]VertexID, error) {
+	return m.ListVertexIDMock(partitionID)
 }
 
 // MockedVertex is mocked Vertex struct

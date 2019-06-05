@@ -37,3 +37,17 @@ func (state *partitionActor) waitInit(context actor.Context) {
 	default:
 	}
 }
+
+func (state *partitionActor) fail(err error) {
+	state.logger.WithError(err).Error(err.Error())
+	// let it crash
+	panic(err)
+}
+
+func (state *partitionActor) logError(msg string) {
+	state.logger.Error(msg)
+}
+
+func (state *partitionActor) logInfo(msg string) {
+	state.logger.Info(msg)
+}

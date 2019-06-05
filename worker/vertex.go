@@ -7,14 +7,15 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/util"
 	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus"
 )
 
 type vertexActor struct {
+	util.ActorUtil
 	plugin           Plugin
 	vertex           Vertex
-	logger           *logrus.Logger
 	halted           bool
 	receivedMessages []Message
 }
@@ -36,7 +37,7 @@ func (c *computeContextImpl) ReceivedMessages() []Message {
 func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 	msg, err := types.MarshalAny(m)
 	if err != nil {
-		c.vertexActor.logInfo(fmt.Sprintf("failed to marshal message: %v", err))
+		c.vertexActor.ActorUtil.LogError(fmt.Sprintf("failed to marshal message: %v", err))
 		return err
 	}
 	c.ctx.Send(c.ctx.Parent(), &command.SuperStepMessage{
@@ -50,7 +51,7 @@ func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 }
 
 func (c *computeContextImpl) VoteToHalt() {
-	c.vertexActor.logInfo(fmt.Sprintf("vertex %v has halted", c.vertexActor.vertex.GetID()))
+	c.vertexActor.ActorUtil.LogInfo(fmt.Sprintf("vertex %v has halted", c.vertexActor.vertex.GetID()))
 	c.vertexActor.halted = true
 }
 
@@ -58,34 +59,39 @@ func (c *computeContextImpl) VoteToHalt() {
 func NewVertexActor(plugin Plugin, logger *logrus.Logger) actor.Actor {
 	return &vertexActor{
 		plugin: plugin,
-		logger: logger,
+		ActorUtil: util.ActorUtil{
+			Logger: logger,
+		},
 	}
 }
 
 // Receive is message handler
 func (state *vertexActor) Receive(context actor.Context) {
-	switch cmd := context.Message().(type) {
+	if state.ActorUtil.IsSystemMessage(context.Message()) {
+		return
+	}
 
+	switch cmd := context.Message().(type) {
 	case *command.InitVertex:
 		if state.vertex != nil {
-			state.fail(errors.New("vertex has already initialized"))
+			state.ActorUtil.Fail(errors.New("vertex has already initialized"))
 			return
 		}
 		state.vertex = state.plugin.NewVertex(VertexID(cmd.VertexId))
 		state.receivedMessages = nil
-		state.logger = state.logger.WithField("vertexId", state.vertex.GetID()).Logger
-		state.logInfo("vertex has initialized")
+		state.ActorUtil.AppendLoggerField("vertexId", state.vertex.GetID())
+		state.ActorUtil.LogInfo("vertex has initialized")
 		context.Respond(&command.InitVertexAck{
 			VertexId: string(state.vertex.GetID()),
 		})
 
 	case *command.LoadVertex:
 		if state.vertex == nil {
-			state.fail(fmt.Errorf("not initialized: cmd=%+v", cmd))
+			state.ActorUtil.Fail(fmt.Errorf("not initialized: cmd=%+v", cmd))
 			return
 		}
 		if err := state.vertex.Load(); err != nil {
-			state.fail(errors.New("failed to load vertex"))
+			state.ActorUtil.Fail(errors.New("failed to load vertex"))
 			return
 		}
 		context.Respond(&command.LoadVertexAck{
@@ -94,18 +100,18 @@ func (state *vertexActor) Receive(context actor.Context) {
 
 	case *command.Compute:
 		if state.vertex == nil {
-			state.fail(fmt.Errorf("not initialized: cmd=%+v", cmd))
+			state.ActorUtil.Fail(fmt.Errorf("not initialized: cmd=%+v", cmd))
 			return
 		}
 		state.onComputed(context, cmd)
 
 	case *command.SuperStepMessage:
 		if state.vertex == nil {
-			state.fail(fmt.Errorf("not initialized: cmd=%+v", cmd))
+			state.ActorUtil.Fail(fmt.Errorf("not initialized: cmd=%+v", cmd))
 			return
 		}
 		if state.vertex.GetID() != VertexID(cmd.DestVertexId) {
-			state.fail(fmt.Errorf("inconsistent vertex id: %+v", *cmd))
+			state.ActorUtil.Fail(fmt.Errorf("inconsistent vertex id: %+v", *cmd))
 			return
 		}
 		// TODO: verify cmd.SuperStep
@@ -115,16 +121,8 @@ func (state *vertexActor) Receive(context actor.Context) {
 			Uuid: cmd.Uuid,
 		})
 
-	case *actor.Started:
-		state.logInfo("actor started")
-	case *actor.Stopping:
-		state.logInfo("actor stopping")
-	case *actor.Stopped:
-		state.logInfo("actor stopped")
-	case *actor.Restarting:
-		state.logInfo("actor restarting")
 	default:
-		state.fail(fmt.Errorf("unknown vertex command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("unhandled vertex command: command=%+v", cmd))
 		return
 	}
 }
@@ -141,7 +139,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 	}
 
 	if state.halted {
-		state.logInfo("vertex is halted")
+		state.ActorUtil.LogDebug("vertex is halted")
 		ctx.Respond(&command.ComputeAck{
 			VertexId: string(id),
 			Halted:   state.halted,
@@ -154,7 +152,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 		vertexActor: state,
 	}
 	if err := state.vertex.Compute(computeContext); err != nil {
-		state.fail(errors.Wrap(err, "failed to compute"))
+		state.ActorUtil.Fail(errors.Wrap(err, "failed to compute"))
 		return
 	}
 
@@ -166,18 +164,4 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 		Halted:   state.halted,
 	})
 	return
-}
-
-func (state *vertexActor) fail(err error) {
-	state.logger.WithError(err).Error(err.Error())
-	// let it crash
-	panic(err)
-}
-
-func (state *vertexActor) logError(msg string) {
-	state.logger.Error(msg)
-}
-
-func (state *vertexActor) logInfo(msg string) {
-	state.logger.Info(msg)
 }
