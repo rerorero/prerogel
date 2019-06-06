@@ -22,6 +22,11 @@ func (u *ActorUtil) LogError(msg string) {
 	u.Logger.Error(msg)
 }
 
+// LogWarn logs warn level message
+func (u *ActorUtil) LogWarn(msg string) {
+	u.Logger.Warn(msg)
+}
+
 // LogInfo logs info level message
 func (u *ActorUtil) LogInfo(msg string) {
 	u.Logger.Info(msg)

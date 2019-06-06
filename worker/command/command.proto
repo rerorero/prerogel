@@ -29,6 +29,7 @@ message SuperStepMessage {
     string dest_vertex_id = 4;
     google.protobuf.Any message = 5;
 }
+
 // SuperStepMessageAck is used to guarantee receipt messages at each end of super step
 message SuperStepMessageAck {
     string uuid = 1;
@@ -42,3 +43,7 @@ message InitPartitionAck {
     uint64 partition_id = 1;
 }
 
+message LoadPartition {}
+message LoadPartitionAck {
+    uint64 partition_id = 1;
+}
