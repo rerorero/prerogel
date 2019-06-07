@@ -44,6 +44,11 @@ func (u *ActorUtil) AppendLoggerField(key string, value interface{}) {
 
 // IsSystemMessage returns if message is SystemMessage
 func (u *ActorUtil) IsSystemMessage(m interface{}) bool {
-	_, ok := m.(actor.SystemMessage)
-	return ok
+	if _, ok := m.(actor.AutoReceiveMessage); ok {
+		return true
+	}
+	if _, ok := m.(actor.SystemMessage); ok {
+		return true
+	}
+	return false
 }

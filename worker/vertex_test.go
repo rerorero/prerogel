@@ -17,29 +17,27 @@ import (
 )
 
 func Test_vertexActor_Receive_InitVertex(t *testing.T) {
-	dummyVertex := &MockedVertex{
-		GetIDMock: func() VertexID {
-			return VertexID("test-id")
-		},
-	}
+	var loaded int
 	type fields struct {
-		plugin Plugin
+		vertex Vertex
 	}
 	tests := []struct {
 		name        string
 		fields      fields
 		cmd         []proto.Message
 		wantRespond []proto.Message
+		wantLoaded  int
 	}{
 		{
 			name: "should be initialized",
 			fields: fields{
-				plugin: &MockedPlugin{
-					NewVertexMock: func(id VertexID) Vertex {
-						if id != VertexID("test-id") {
-							t.Fatal("unexpected id")
-						}
-						return dummyVertex
+				vertex: &MockedVertex{
+					LoadMock: func() error {
+						loaded++
+						return nil
+					},
+					GetIDMock: func() VertexID {
+						return "test-id"
 					},
 				},
 			},
@@ -53,13 +51,18 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 					VertexId: "test-id",
 				},
 			},
+			wantLoaded: 1,
 		},
 		{
 			name: "fails if already initialized",
 			fields: fields{
-				plugin: &MockedPlugin{
-					NewVertexMock: func(id VertexID) Vertex {
-						return dummyVertex
+				vertex: &MockedVertex{
+					LoadMock: func() error {
+						loaded++
+						return nil
+					},
+					GetIDMock: func() VertexID {
+						return "test-id"
 					},
 				},
 			},
@@ -75,121 +78,46 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 				},
 				nil,
 			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger, _ := test.NewNullLogger()
-
-			context := actor.EmptyRootContext
-			props := actor.PropsFromProducer(func() actor.Actor {
-				return NewVertexActor(tt.fields.plugin, logger)
-			})
-			pid := context.Spawn(props)
-
-			for i, cmd := range tt.cmd {
-				res, err := context.RequestFuture(pid, cmd, time.Second).Result()
-				if (err != nil) != (tt.wantRespond[i] == nil) {
-					t.Fatal(err)
-				}
-				if diff := cmp.Diff(tt.wantRespond[i], res); diff != "" {
-					t.Errorf("unexpected respond: %s", diff)
-				}
-			}
-		})
-	}
-}
-
-func Test_vertexActor_Receive_LoadVertex(t *testing.T) {
-	var loaded int
-	tests := []struct {
-		name        string
-		vertex      Vertex
-		cmd         []proto.Message
-		wantRespond []proto.Message
-		wantLoaded  int
-	}{
-		{
-			name: "load",
-			vertex: &MockedVertex{
-				LoadMock: func() error {
-					loaded++
-					return nil
-				},
-				GetIDMock: func() VertexID {
-					return "test-id"
-				},
-			},
-			cmd: []proto.Message{
-				&command.InitVertex{VertexId: "test-id"},
-				&command.LoadVertex{},
-			},
-			wantRespond: []proto.Message{
-				&command.InitVertexAck{
-					VertexId: "test-id",
-				},
-				&command.LoadVertexAck{
-					VertexId: "test-id",
-				},
-			},
 			wantLoaded: 1,
 		},
 		{
-			name: "fail if has not initialized yet",
-			vertex: &MockedVertex{
-				LoadMock: func() error {
-					loaded++
-					return nil
-				},
-				GetIDMock: func() VertexID {
-					return "test-id"
+			name: "fails to load",
+			fields: fields{
+				vertex: &MockedVertex{
+					LoadMock: func() error {
+						return errors.New("foo")
+					},
+					GetIDMock: func() VertexID {
+						return "test-id"
+					},
 				},
 			},
 			cmd: []proto.Message{
-				&command.LoadVertex{},
+				&command.InitVertex{
+					VertexId: "test-id",
+				},
 			},
 			wantRespond: []proto.Message{
 				nil,
 			},
-			wantLoaded: 0,
-		},
-		{
-			name: "fails when Load() returns error",
-			vertex: &MockedVertex{
-				LoadMock: func() error {
-					loaded++
-					return errors.New("test")
-				},
-				GetIDMock: func() VertexID {
-					return "test-id"
-				},
-			},
-			cmd: []proto.Message{
-				&command.InitVertex{VertexId: "test-id"},
-				&command.LoadVertex{},
-			},
-			wantRespond: []proto.Message{
-				&command.InitVertexAck{
-					VertexId: "test-id",
-				},
-				nil,
-			},
-			wantLoaded: 1,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			loaded = 0
 			logger, _ := test.NewNullLogger()
-			plugin := &MockedPlugin{
-				NewVertexMock: func(id VertexID) Vertex {
-					return tt.vertex
-				},
-			}
 
 			context := actor.EmptyRootContext
 			props := actor.PropsFromProducer(func() actor.Actor {
-				return NewVertexActor(plugin, logger)
+				return NewVertexActor(&MockedPlugin{
+					NewVertexMock: func(id VertexID) Vertex {
+						if id != "test-id" {
+							t.Fatal("unexpected vertex id")
+						}
+						return tt.fields.vertex
+					},
+				}, logger)
 			})
 			pid := context.Spawn(props)
 
@@ -202,6 +130,7 @@ func Test_vertexActor_Receive_LoadVertex(t *testing.T) {
 					t.Errorf("unexpected respond: %s", diff)
 				}
 			}
+
 			if loaded != tt.wantLoaded {
 				t.Errorf("unexpected loaded count: %d, %d", loaded, tt.wantLoaded)
 			}
@@ -248,18 +177,25 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 					computed++
 					return nil
 				},
+				LoadMock: func() error {
+					return nil
+				},
 				GetIDMock: func() VertexID {
 					return "test-id"
 				},
 			},
 			cmd: []proto.Message{
 				&command.InitVertex{VertexId: "test-id"},
+				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 				&command.Compute{SuperStep: 1},
 			},
 			wantRespond: []proto.Message{
 				&command.InitVertexAck{
 					VertexId: "test-id",
+				},
+				&command.SuperStepBarrierAck{
+					VertexId: string("test-id"),
 				},
 				&command.ComputeAck{
 					VertexId: string("test-id"),
@@ -290,33 +226,31 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 					computed++
 					return nil
 				},
+				LoadMock: func() error {
+					return nil
+				},
 				GetIDMock: func() VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
 				&command.InitVertex{VertexId: "test-id"},
+				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
+				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 1},
+				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 2},
 			},
 			incomingMessages: map[int][]*command.SuperStepMessage{
-				1: {msg1, msg2}, // sent between Compute(step0) and Compute(step1)
+				2: {msg1, msg2}, // sent between Compute(step0) and Compute(step1)
 			},
 			wantRespond: []proto.Message{
-				&command.InitVertexAck{
-					VertexId: "test-id",
-				},
-				&command.ComputeAck{
-					VertexId: string("test-id"),
-					Halted:   false,
-				},
-				&command.ComputeAck{
-					VertexId: string("test-id"),
-					Halted:   false,
-				},
-				&command.ComputeAck{
-					VertexId: string("test-id"),
-					Halted:   true,
-				},
+				&command.InitVertexAck{VertexId: "test-id"},
+				&command.SuperStepBarrierAck{VertexId: string("test-id")},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: false},
+				&command.SuperStepBarrierAck{VertexId: string("test-id")},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: false},
+				&command.SuperStepBarrierAck{VertexId: string("test-id")},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: true},
 			},
 			wantComputed:     2,
 			wantSentMessages: nil,
@@ -335,33 +269,31 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 					computed++
 					return nil
 				},
+				LoadMock: func() error {
+					return nil
+				},
 				GetIDMock: func() VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
 				&command.InitVertex{VertexId: "test-id"},
+				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
+				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 1},
+				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 2},
 			},
 			incomingMessages: map[int][]*command.SuperStepMessage{
-				1: {msg1}, // sent between Compute(step0) and Compute(step1)
+				2: {msg1}, // sent between Compute(step0) and Compute(step1)
 			},
 			wantRespond: []proto.Message{
-				&command.InitVertexAck{
-					VertexId: "test-id",
-				},
-				&command.ComputeAck{
-					VertexId: string("test-id"),
-					Halted:   false,
-				},
-				&command.ComputeAck{
-					VertexId: string("test-id"),
-					Halted:   false,
-				},
-				&command.ComputeAck{
-					VertexId: string("test-id"),
-					Halted:   true,
-				},
+				&command.InitVertexAck{VertexId: "test-id"},
+				&command.SuperStepBarrierAck{VertexId: string("test-id")},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: false},
+				&command.SuperStepBarrierAck{VertexId: string("test-id")},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: false},
+				&command.SuperStepBarrierAck{VertexId: string("test-id")},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: true},
 			},
 			wantComputed: 2,
 			wantSentMessages: []*command.SuperStepMessage{
@@ -387,16 +319,19 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				ComputeMock: func(ctx ComputeContext) error {
 					return errors.New("test")
 				},
+				LoadMock: func() error {
+					return nil
+				},
 				GetIDMock: func() VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
 				&command.InitVertex{VertexId: "test-id"},
+				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 			},
 			wantRespond: []proto.Message{
-				&command.InitVertexAck{
-					VertexId: "test-id",
-				},
+				&command.InitVertexAck{VertexId: "test-id"},
+				&command.SuperStepBarrierAck{VertexId: "test-id"},
 				nil,
 			},
 		},
@@ -438,6 +373,9 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 					child = ctx.Spawn(props)
 				case *command.SuperStepMessage:
 					sentMessages = append(sentMessages, m)
+					ctx.Send(m.SrcPid, &command.SuperStepMessageAck{
+						Uuid: m.Uuid,
+					})
 				case proto.Message:
 					ctx.Forward(child)
 				}
@@ -446,14 +384,13 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 			for i, cmd := range tt.cmd {
 				res, err := context.RequestFuture(parent, cmd, time.Second).Result()
 				if (err != nil) != (tt.wantRespond[i] == nil) {
-					t.Fatal(err)
+					t.Fatalf("i=%v: %v", i, err)
 				}
 				if diff := cmp.Diff(tt.wantRespond[i], res); diff != "" {
 					t.Fatalf("unexpected respond of %d: %s", i, diff)
 				}
 				// send super step messages
-				msgs, ok := tt.incomingMessages[i]
-				if ok {
+				if msgs, ok := tt.incomingMessages[i]; ok {
 					for _, msg := range msgs {
 						childLock.Lock()
 						ack, err := context.RequestFuture(child, msg, time.Second).Result()
@@ -475,7 +412,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 			if len(tt.wantSentMessages) != len(sentMessages) {
 				t.Fatalf("unexpected number of messages: %d", len(sentMessages))
 			}
-			ignoreFields := cmpopts.IgnoreFields(command.SuperStepMessage{}, "Uuid")
+			ignoreFields := cmpopts.IgnoreFields(command.SuperStepMessage{}, "Uuid", "SrcPid")
 			for i := range tt.wantSentMessages {
 				if diff := cmp.Diff(*tt.wantSentMessages[i], *sentMessages[i], ignoreFields); diff != "" {
 					t.Errorf("unexpected messages: %s", diff)

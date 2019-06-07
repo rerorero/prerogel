@@ -1,15 +1,14 @@
 package worker
 
+type ackRecorder struct {
+	m map[string]struct{}
+}
+
 func (ar *ackRecorder) clear() {
-	ar.m = make(map[VertexID]struct{})
+	ar.m = make(map[string]struct{})
 }
 
-func (ar *ackRecorder) setExpected(map[VertexID]) {
-	ar.m = make(map[VertexID]struct{})
-}
-
-// ack marks that id has received ack, and return if already received ack or not as bool
-func (ar *ackRecorder) ack(id VertexID) bool {
+func (ar *ackRecorder) addToWaitList(id string) bool {
 	if _, ok := ar.m[id]; ok {
 		return true
 	}
@@ -17,6 +16,14 @@ func (ar *ackRecorder) ack(id VertexID) bool {
 	return false
 }
 
-func (ar *ackRecorder) hasCompleted(expected int) bool {
-	return expected == len(ar.m)
+func (ar *ackRecorder) ack(id string) bool {
+	if _, ok := ar.m[id]; !ok {
+		return true
+	}
+	delete(ar.m, id)
+	return false
+}
+
+func (ar *ackRecorder) hasCompleted() bool {
+	return len(ar.m) == 0
 }

@@ -22,10 +22,6 @@ type partitionActor struct {
 	superStep      uint64
 }
 
-type ackRecorder struct {
-	m map[VertexID]struct{}
-}
-
 // NewPartitionActor returns an actor instance
 func NewPartitionActor(plugin Plugin, logger *logrus.Logger) actor.Actor {
 	ar := &ackRecorder{}
@@ -78,7 +74,7 @@ func (state *partitionActor) waitInit(context actor.Context) {
 				VertexId: string(id),
 			})
 		}
-		state.ackRecorder.clear()
+		state.resetAckRecorder()
 		state.behavior.Become(state.waitInitVertexAck)
 		state.ActorUtil.LogDebug("become waitInitVertexAck")
 		return
@@ -92,14 +88,14 @@ func (state *partitionActor) waitInit(context actor.Context) {
 func (state *partitionActor) waitInitVertexAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.InitVertexAck:
-		if state.ackRecorder.ack(VertexID(cmd.VertexId)) {
+		if state.ackRecorder.ack(cmd.VertexId) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("InitVertexAck duplicated: id=%v", cmd.VertexId))
 		}
-		if state.ackRecorder.hasCompleted(state.vertices) {
+		if state.ackRecorder.hasCompleted() {
 			context.Send(context.Parent(), &command.InitPartitionAck{
 				PartitionId: state.partitionID,
 			})
-			state.ackRecorder.clear()
+			state.resetAckRecorder()
 			state.behavior.Become(state.idle)
 			state.ActorUtil.LogInfo("initialization partition has completed")
 		}
@@ -111,14 +107,9 @@ func (state *partitionActor) waitInitVertexAck(context actor.Context) {
 
 func (state *partitionActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
-	case *command.LoadPartition:
-		state.broadcastToVertices(context, &command.LoadVertex{})
-		state.behavior.Become(state.waitLoadVertexAck)
-		return
-	case *command.Compute:
-		state.superStep = cmd.SuperStep
+	case *command.SuperStepBarrier:
 		state.broadcastToVertices(context, cmd)
-		state.behavior.Become(state.computing)
+		state.behavior.Become(state.waitSuperStepBarrierAck)
 		return
 	default:
 		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled partition command: command=%+v", cmd))
@@ -126,35 +117,45 @@ func (state *partitionActor) idle(context actor.Context) {
 	}
 }
 
-func (state *partitionActor) waitLoadVertexAck(context actor.Context) {
+func (state *partitionActor) waitSuperStepBarrierAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
-	case *command.LoadVertexAck:
-		if state.ackRecorder.ack(VertexID(cmd.VertexId)) {
-			state.ActorUtil.LogWarn(fmt.Sprintf("LoadVetexAck duplicated: id=%v", cmd.VertexId))
+	case *command.SuperStepBarrierAck:
+		if state.ackRecorder.ack(cmd.VertexId) {
+			state.ActorUtil.LogWarn(fmt.Sprintf("InitVertexAck duplicated: id=%v", cmd.VertexId))
 		}
-		if state.ackRecorder.hasCompleted(state.vertices) {
-			context.Send(context.Parent(), &command.LoadPartitionAck{
+		if state.ackRecorder.hasCompleted() {
+			context.Send(context.Parent(), &command.SuperStepBarrierPartitionAck{
 				PartitionId: state.partitionID,
 			})
-			state.ackRecorder.clear()
-			state.behavior.Become(state.idle)
-			state.ActorUtil.LogInfo("load partition has completed")
+			state.resetAckRecorder()
+			state.behavior.Become(state.superstep)
+			state.ActorUtil.LogInfo("super step barrier has completed for partition")
 		}
 		return
-
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitLoadVertexAck] unhandled partition command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[waitSpuerStepBarrierAck] unhandled partition command: command=%+v", cmd))
 		return
 	}
 }
-func (state *partitionActor) computing(context actor.Context) {
+
+func (state *partitionActor) superstep(context actor.Context) {
 	switch cmd := context.Message().(type) {
+	case *command.Compute:
+		state.superStep = cmd.SuperStep
+		state.broadcastToVertices(context, cmd)
+		return
+
 	case *command.ComputeAck:
-		if state.ackRecorder.ack(VertexID(cmd.VertexId)) {
+		if state.ackRecorder.ack(cmd.VertexId) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("ComputeAck duplicated: id=%v", cmd.VertexId))
 		}
-		if state.ackRecorder.hasCompleted(state.vertices) {
-			// TODO: return ack
+		if state.ackRecorder.hasCompleted() {
+			context.Send(context.Parent(), &command.ComputePartitionAck{
+				PartitionId: state.partitionID,
+			})
+			state.resetAckRecorder()
+			state.behavior.Become(state.idle)
+			state.ActorUtil.LogInfo("compute has completed for partition")
 		}
 		// TODO: aggregate halted status
 		return
@@ -164,7 +165,7 @@ func (state *partitionActor) computing(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[computing] unhandled partition command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled partition command: command=%+v", cmd))
 		return
 	}
 }
@@ -173,5 +174,12 @@ func (state *partitionActor) broadcastToVertices(context actor.Context, msg inte
 	state.LogDebug(fmt.Sprintf("broadcast %+v", msg))
 	for _, pid := range state.vertices {
 		context.Send(pid, msg)
+	}
+}
+
+func (state *partitionActor) resetAckRecorder() {
+	state.ackRecorder.clear()
+	for id := range state.vertices {
+		state.ackRecorder.addToWaitList(string(id))
 	}
 }

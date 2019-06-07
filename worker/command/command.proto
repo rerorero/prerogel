@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/any.proto";
+import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 
 message InitVertex {
     string vertex_id = 1;
@@ -9,9 +10,12 @@ message InitVertexAck {
     string vertex_id = 1;
 }
 
-message LoadVertex {}
-message LoadVertexAck {
+message SuperStepBarrier {}
+message SuperStepBarrierAck {
     string vertex_id = 1;
+}
+message SuperStepBarrierPartitionAck {
+    uint64 partition_id = 1;
 }
 
 message Compute {
@@ -21,13 +25,17 @@ message ComputeAck {
     string vertex_id = 1;
     bool halted = 2;
 }
+message ComputePartitionAck {
+    uint64 partition_id = 1;
+}
 
 message SuperStepMessage {
     string uuid = 1;
     uint64 super_step = 2;
     string src_vertex_id = 3;
-    string dest_vertex_id = 4;
-    google.protobuf.Any message = 5;
+    actor.PID src_pid = 4;
+    string dest_vertex_id = 5;
+    google.protobuf.Any message = 6;
 }
 
 // SuperStepMessageAck is used to guarantee receipt messages at each end of super step
@@ -43,7 +51,3 @@ message InitPartitionAck {
     uint64 partition_id = 1;
 }
 
-message LoadPartition {}
-message LoadPartitionAck {
-    uint64 partition_id = 1;
-}
