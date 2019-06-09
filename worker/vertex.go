@@ -84,13 +84,13 @@ func NewVertexActor(plugin Plugin, logger *logrus.Logger) actor.Actor {
 
 // Receive is message handler
 func (state *vertexActor) Receive(context actor.Context) {
+	if state.ActorUtil.IsSystemMessage(context.Message()) {
+		return
+	}
 	state.behavior.Receive(context)
 }
 
 func (state *vertexActor) waitInit(context actor.Context) {
-	if state.ActorUtil.IsSystemMessage(context.Message()) {
-		return
-	}
 	switch cmd := context.Message().(type) {
 	case *command.InitVertex:
 		if state.vertex != nil {
@@ -117,9 +117,6 @@ func (state *vertexActor) waitInit(context actor.Context) {
 }
 
 func (state *vertexActor) superstep(context actor.Context) {
-	if state.ActorUtil.IsSystemMessage(context.Message()) {
-		return
-	}
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrier:
 		// move messages from queue to buffer
