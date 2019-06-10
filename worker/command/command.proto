@@ -45,9 +45,23 @@ message SuperStepMessageAck {
 
 message InitPartition {
     uint64 partition_id = 1;
-    uint64 nr_of_partitions = 2;
 }
 message InitPartitionAck {
     uint64 partition_id = 1;
 }
 
+message ClusterInfo {
+    repeated PartitionMap partition_map = 1;
+}
+
+message PartitionMap {
+    actor.PID worker_pid = 1;
+    repeated uint64 partitions = 2;
+}
+
+message InitWorker {
+    ClusterInfo clusterInfo = 1;
+}
+message InitWorkerAck {
+    actor.PID worker_pid = 1;
+}

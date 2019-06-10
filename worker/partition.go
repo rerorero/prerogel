@@ -12,13 +12,12 @@ import (
 
 type partitionActor struct {
 	util.ActorUtil
-	partitionID    uint64
-	nrOfPartitions uint64
-	behavior       actor.Behavior
-	plugin         Plugin
-	vertices       map[VertexID]*actor.PID
-	vertexProps    *actor.Props
-	ackRecorder    *ackRecorder
+	partitionID uint64
+	behavior    actor.Behavior
+	plugin      Plugin
+	vertices    map[VertexID]*actor.PID
+	vertexProps *actor.Props
+	ackRecorder *ackRecorder
 }
 
 // NewPartitionActor returns an actor instance
@@ -51,7 +50,6 @@ func (state *partitionActor) waitInit(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.InitPartition: // sent from parent
 		state.partitionID = cmd.PartitionId
-		state.nrOfPartitions = cmd.NrOfPartitions
 		state.ActorUtil.AppendLoggerField("partitionId", cmd.PartitionId)
 
 		ids, err := state.plugin.ListVertexID(cmd.PartitionId)

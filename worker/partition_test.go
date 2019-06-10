@@ -58,8 +58,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 			},
 			cmd: []proto.Message{
 				&command.InitPartition{
-					PartitionId:    123,
-					NrOfPartitions: 456,
+					PartitionId: 123,
 				},
 				&command.SuperStepBarrier{},
 			},
@@ -95,8 +94,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 			},
 			cmd: []proto.Message{
 				&command.InitPartition{
-					PartitionId:    123,
-					NrOfPartitions: 456,
+					PartitionId: 123,
 				},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
@@ -196,8 +194,7 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 	// move state forward
 	called = 0
 	if _, err := proxy.SendAndAwait(context, &command.InitPartition{
-		PartitionId:    123,
-		NrOfPartitions: 456,
+		PartitionId: 123,
 	}, &command.InitPartitionAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}

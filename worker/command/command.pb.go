@@ -497,8 +497,7 @@ func (m *SuperStepMessageAck) GetUuid() string {
 }
 
 type InitPartition struct {
-	PartitionId    uint64 `protobuf:"varint,1,opt,name=partition_id,json=partitionId,proto3" json:"partition_id,omitempty"`
-	NrOfPartitions uint64 `protobuf:"varint,2,opt,name=nr_of_partitions,json=nrOfPartitions,proto3" json:"nr_of_partitions,omitempty"`
+	PartitionId uint64 `protobuf:"varint,1,opt,name=partition_id,json=partitionId,proto3" json:"partition_id,omitempty"`
 }
 
 func (m *InitPartition) Reset()      { *m = InitPartition{} }
@@ -536,13 +535,6 @@ var xxx_messageInfo_InitPartition proto.InternalMessageInfo
 func (m *InitPartition) GetPartitionId() uint64 {
 	if m != nil {
 		return m.PartitionId
-	}
-	return 0
-}
-
-func (m *InitPartition) GetNrOfPartitions() uint64 {
-	if m != nil {
-		return m.NrOfPartitions
 	}
 	return 0
 }
@@ -590,6 +582,186 @@ func (m *InitPartitionAck) GetPartitionId() uint64 {
 	return 0
 }
 
+type ClusterInfo struct {
+	PartitionMap []*PartitionMap `protobuf:"bytes,1,rep,name=partition_map,json=partitionMap,proto3" json:"partition_map,omitempty"`
+}
+
+func (m *ClusterInfo) Reset()      { *m = ClusterInfo{} }
+func (*ClusterInfo) ProtoMessage() {}
+func (*ClusterInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_213c0bb044472049, []int{12}
+}
+func (m *ClusterInfo) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ClusterInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ClusterInfo.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ClusterInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClusterInfo.Merge(m, src)
+}
+func (m *ClusterInfo) XXX_Size() int {
+	return m.Size()
+}
+func (m *ClusterInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClusterInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClusterInfo proto.InternalMessageInfo
+
+func (m *ClusterInfo) GetPartitionMap() []*PartitionMap {
+	if m != nil {
+		return m.PartitionMap
+	}
+	return nil
+}
+
+type PartitionMap struct {
+	WorkerPid  *actor.PID `protobuf:"bytes,1,opt,name=worker_pid,json=workerPid,proto3" json:"worker_pid,omitempty"`
+	Partitions []uint64   `protobuf:"varint,2,rep,packed,name=partitions,proto3" json:"partitions,omitempty"`
+}
+
+func (m *PartitionMap) Reset()      { *m = PartitionMap{} }
+func (*PartitionMap) ProtoMessage() {}
+func (*PartitionMap) Descriptor() ([]byte, []int) {
+	return fileDescriptor_213c0bb044472049, []int{13}
+}
+func (m *PartitionMap) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PartitionMap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PartitionMap.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PartitionMap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PartitionMap.Merge(m, src)
+}
+func (m *PartitionMap) XXX_Size() int {
+	return m.Size()
+}
+func (m *PartitionMap) XXX_DiscardUnknown() {
+	xxx_messageInfo_PartitionMap.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PartitionMap proto.InternalMessageInfo
+
+func (m *PartitionMap) GetWorkerPid() *actor.PID {
+	if m != nil {
+		return m.WorkerPid
+	}
+	return nil
+}
+
+func (m *PartitionMap) GetPartitions() []uint64 {
+	if m != nil {
+		return m.Partitions
+	}
+	return nil
+}
+
+type InitWorker struct {
+	ClusterInfo *ClusterInfo `protobuf:"bytes,1,opt,name=clusterInfo,proto3" json:"clusterInfo,omitempty"`
+}
+
+func (m *InitWorker) Reset()      { *m = InitWorker{} }
+func (*InitWorker) ProtoMessage() {}
+func (*InitWorker) Descriptor() ([]byte, []int) {
+	return fileDescriptor_213c0bb044472049, []int{14}
+}
+func (m *InitWorker) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *InitWorker) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_InitWorker.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *InitWorker) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InitWorker.Merge(m, src)
+}
+func (m *InitWorker) XXX_Size() int {
+	return m.Size()
+}
+func (m *InitWorker) XXX_DiscardUnknown() {
+	xxx_messageInfo_InitWorker.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InitWorker proto.InternalMessageInfo
+
+func (m *InitWorker) GetClusterInfo() *ClusterInfo {
+	if m != nil {
+		return m.ClusterInfo
+	}
+	return nil
+}
+
+type InitWorkerAck struct {
+	WorkerPid *actor.PID `protobuf:"bytes,1,opt,name=worker_pid,json=workerPid,proto3" json:"worker_pid,omitempty"`
+}
+
+func (m *InitWorkerAck) Reset()      { *m = InitWorkerAck{} }
+func (*InitWorkerAck) ProtoMessage() {}
+func (*InitWorkerAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_213c0bb044472049, []int{15}
+}
+func (m *InitWorkerAck) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *InitWorkerAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_InitWorkerAck.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *InitWorkerAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InitWorkerAck.Merge(m, src)
+}
+func (m *InitWorkerAck) XXX_Size() int {
+	return m.Size()
+}
+func (m *InitWorkerAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_InitWorkerAck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InitWorkerAck proto.InternalMessageInfo
+
+func (m *InitWorkerAck) GetWorkerPid() *actor.PID {
+	if m != nil {
+		return m.WorkerPid
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*InitVertex)(nil), "InitVertex")
 	proto.RegisterType((*InitVertexAck)(nil), "InitVertexAck")
@@ -603,43 +775,52 @@ func init() {
 	proto.RegisterType((*SuperStepMessageAck)(nil), "SuperStepMessageAck")
 	proto.RegisterType((*InitPartition)(nil), "InitPartition")
 	proto.RegisterType((*InitPartitionAck)(nil), "InitPartitionAck")
+	proto.RegisterType((*ClusterInfo)(nil), "ClusterInfo")
+	proto.RegisterType((*PartitionMap)(nil), "PartitionMap")
+	proto.RegisterType((*InitWorker)(nil), "InitWorker")
+	proto.RegisterType((*InitWorkerAck)(nil), "InitWorkerAck")
 }
 
 func init() { proto.RegisterFile("command.proto", fileDescriptor_213c0bb044472049) }
 
 var fileDescriptor_213c0bb044472049 = []byte{
-	// 486 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0xcb, 0x6e, 0xd3, 0x40,
-	0x14, 0xf5, 0x94, 0x90, 0x34, 0x37, 0x4d, 0x15, 0xb9, 0x08, 0x85, 0xd7, 0x28, 0x0c, 0x2c, 0x5c,
-	0x09, 0x1c, 0xa9, 0x3c, 0xc4, 0xd6, 0x85, 0x8d, 0x17, 0x88, 0xc8, 0x45, 0x5d, 0x21, 0x59, 0x8e,
-	0x3d, 0x71, 0xad, 0xd6, 0x1e, 0x6b, 0x66, 0x8c, 0xc8, 0x8e, 0x4f, 0xe0, 0x33, 0xf8, 0x14, 0x96,
-	0x59, 0x76, 0x49, 0x1c, 0x16, 0x2c, 0xfb, 0x09, 0xc8, 0xe3, 0x47, 0x43, 0x84, 0x68, 0xbb, 0xbb,
-	0xf7, 0xf8, 0xdc, 0xe3, 0x7b, 0xcf, 0x1c, 0xe8, 0xfb, 0x2c, 0x8e, 0xbd, 0x24, 0x30, 0x53, 0xce,
-	0x24, 0xbb, 0x7f, 0x2f, 0x64, 0x2c, 0x3c, 0xa3, 0x63, 0xd5, 0x4d, 0xb3, 0xd9, 0xd8, 0x4b, 0xe6,
-	0xd5, 0xa7, 0xd7, 0x61, 0x24, 0x4f, 0xb2, 0xa9, 0xe9, 0xb3, 0x78, 0x6c, 0x89, 0x79, 0x72, 0xca,
-	0x59, 0x62, 0x7f, 0x2c, 0x99, 0x9e, 0x2f, 0x19, 0x7f, 0x1e, 0xb2, 0xb1, 0x2a, 0x4a, 0x4c, 0x94,
-	0x73, 0x64, 0x1f, 0xc0, 0x4e, 0x22, 0x79, 0x4c, 0xb9, 0xa4, 0x5f, 0xf4, 0x07, 0xd0, 0xfd, 0xac,
-	0x2a, 0x37, 0x0a, 0x86, 0x68, 0x84, 0x8c, 0xae, 0xb3, 0x5d, 0x02, 0x76, 0x40, 0x9e, 0x41, 0xff,
-	0x92, 0x6a, 0xf9, 0xa7, 0xff, 0x67, 0xeb, 0x30, 0x38, 0xca, 0x52, 0xca, 0x8f, 0x24, 0x4d, 0x0f,
-	0x3d, 0xce, 0x23, 0xca, 0xc9, 0x01, 0xec, 0x6d, 0x62, 0x57, 0xea, 0x58, 0xf0, 0x70, 0x73, 0x66,
-	0xe2, 0x71, 0x19, 0xc9, 0x88, 0x25, 0xc5, 0xf0, 0x63, 0xd8, 0x49, 0xeb, 0xbe, 0x9e, 0x6f, 0x39,
-	0xbd, 0x06, 0xb3, 0x03, 0x62, 0x40, 0xe7, 0x2d, 0x8b, 0xd3, 0x4c, 0x52, 0xfd, 0x11, 0x80, 0x28,
-	0xd4, 0x5c, 0x21, 0x69, 0x5a, 0x71, 0xbb, 0xa2, 0xd6, 0x27, 0x16, 0x40, 0xc5, 0xbc, 0x6a, 0x2f,
-	0xfd, 0x2e, 0xb4, 0x4f, 0xbc, 0x33, 0x49, 0x83, 0xe1, 0xd6, 0x08, 0x19, 0xdb, 0x4e, 0xd5, 0x91,
-	0x37, 0xb0, 0x57, 0x49, 0xdc, 0x74, 0xcd, 0x5f, 0x68, 0xcd, 0xb2, 0xf7, 0x54, 0x08, 0x2f, 0xa4,
-	0xba, 0x0e, 0xad, 0x2c, 0x6b, 0x7e, 0xaf, 0xea, 0x8d, 0x23, 0xb6, 0x36, 0x8e, 0xd0, 0x09, 0xf4,
-	0x05, 0xf7, 0xdd, 0xcb, 0xd5, 0x6f, 0xa9, 0xd9, 0x9e, 0xe0, 0xfe, 0x71, 0xbd, 0xfd, 0x13, 0xe8,
-	0x14, 0x9c, 0x34, 0x0a, 0x86, 0xad, 0x11, 0x32, 0x7a, 0x07, 0x60, 0xaa, 0x70, 0x98, 0x13, 0xfb,
-	0x9d, 0xd3, 0x16, 0xdc, 0x9f, 0x44, 0x81, 0xfe, 0x14, 0x76, 0x03, 0x2a, 0xe4, 0x9a, 0xd2, 0x6d,
-	0xa5, 0xb4, 0x53, 0xa0, 0x8d, 0x94, 0x09, 0x9d, 0xb8, 0x5c, 0x76, 0xd8, 0x56, 0x52, 0x77, 0xcc,
-	0x32, 0xa6, 0x66, 0x1d, 0x53, 0xd3, 0x4a, 0xe6, 0x4e, 0x4d, 0x22, 0xfb, 0x6b, 0x21, 0xa8, 0xae,
-	0x2c, 0x0c, 0xfa, 0xc7, 0xa1, 0xe4, 0x53, 0x99, 0xb8, 0xc6, 0xc8, 0x6b, 0xb8, 0xa8, 0x1b, 0x30,
-	0x48, 0xb8, 0xcb, 0x66, 0x6e, 0x03, 0x8a, 0xca, 0xa2, 0xdd, 0x84, 0x7f, 0x98, 0x35, 0x5a, 0x82,
-	0xbc, 0x82, 0xc1, 0x5f, 0xea, 0xd7, 0x7b, 0xa6, 0xc3, 0x97, 0x8b, 0x25, 0xd6, 0xce, 0x97, 0x58,
-	0xbb, 0x58, 0x62, 0xf4, 0x35, 0xc7, 0xe8, 0x7b, 0x8e, 0xd1, 0x8f, 0x1c, 0xa3, 0x45, 0x8e, 0xd1,
-	0xcf, 0x1c, 0xa3, 0xdf, 0x39, 0xd6, 0x2e, 0x72, 0x8c, 0xbe, 0xad, 0xb0, 0xb6, 0x58, 0x61, 0xed,
-	0x7c, 0x85, 0xb5, 0x69, 0x5b, 0x99, 0xf1, 0xe2, 0x4f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xd8, 0x39,
-	0x49, 0x96, 0xd2, 0x03, 0x00, 0x00,
+	// 567 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0xcb, 0x6e, 0xd3, 0x4c,
+	0x18, 0xf5, 0xb4, 0xf9, 0xd3, 0xe6, 0x73, 0xf2, 0xab, 0x72, 0x11, 0x0a, 0xb7, 0x51, 0x18, 0x58,
+	0xb8, 0x12, 0x38, 0x52, 0xb8, 0x08, 0x21, 0x36, 0x6e, 0xd9, 0x78, 0x51, 0xa9, 0x72, 0x51, 0x11,
+	0xab, 0xc8, 0xb1, 0xa7, 0xa9, 0x95, 0xd8, 0x63, 0xcd, 0x8c, 0x81, 0xec, 0x78, 0x04, 0x1e, 0x83,
+	0x47, 0x61, 0x99, 0x65, 0x97, 0xc4, 0x61, 0xc1, 0xb2, 0x8f, 0x80, 0x7c, 0x8d, 0x09, 0x88, 0x86,
+	0xdd, 0xcc, 0x37, 0xe7, 0x9c, 0x9c, 0xef, 0xe4, 0x18, 0x3a, 0x2e, 0x0b, 0x02, 0x27, 0xf4, 0x8c,
+	0x88, 0x33, 0xc9, 0x6e, 0xdf, 0x1a, 0x33, 0x36, 0x9e, 0xd2, 0x7e, 0x76, 0x1b, 0xc5, 0xe7, 0x7d,
+	0x27, 0x9c, 0x15, 0x4f, 0xcf, 0xc7, 0xbe, 0xbc, 0x88, 0x47, 0x86, 0xcb, 0x82, 0xbe, 0x29, 0x66,
+	0xe1, 0x84, 0xb3, 0xd0, 0x7a, 0x93, 0x23, 0x1d, 0x57, 0x32, 0xfe, 0x78, 0xcc, 0xfa, 0xd9, 0x21,
+	0x9f, 0x89, 0x9c, 0x47, 0x0e, 0x00, 0xac, 0xd0, 0x97, 0x67, 0x94, 0x4b, 0xfa, 0x51, 0xbb, 0x03,
+	0xad, 0xf7, 0xd9, 0x69, 0xe8, 0x7b, 0x5d, 0xd4, 0x43, 0x7a, 0xcb, 0xde, 0xcd, 0x07, 0x96, 0x47,
+	0x1e, 0x41, 0x67, 0x05, 0x35, 0xdd, 0xc9, 0xdf, 0xd1, 0x1a, 0xec, 0x9d, 0xc6, 0x11, 0xe5, 0xa7,
+	0x92, 0x46, 0x87, 0x0e, 0xe7, 0x3e, 0xe5, 0x64, 0x00, 0xfb, 0xeb, 0xb3, 0x6b, 0x75, 0x4c, 0xb8,
+	0xbb, 0xce, 0x39, 0x71, 0xb8, 0xf4, 0xa5, 0xcf, 0xc2, 0x94, 0x7c, 0x1f, 0xda, 0x51, 0x79, 0x2f,
+	0xf9, 0x0d, 0x5b, 0xad, 0x66, 0x96, 0x47, 0x74, 0xd8, 0x39, 0x62, 0x41, 0x14, 0x4b, 0xaa, 0xdd,
+	0x03, 0x10, 0xa9, 0xda, 0x50, 0x48, 0x1a, 0x15, 0xd8, 0x96, 0x28, 0xf5, 0x89, 0x09, 0x50, 0x20,
+	0xaf, 0xf3, 0xa5, 0xdd, 0x84, 0xe6, 0x85, 0x33, 0x95, 0xd4, 0xeb, 0x6e, 0xf5, 0x90, 0xbe, 0x6b,
+	0x17, 0x37, 0xf2, 0x02, 0xf6, 0x0b, 0x89, 0x7f, 0xb5, 0xf9, 0x1d, 0xd5, 0x22, 0x3b, 0xa6, 0x42,
+	0x38, 0x63, 0xaa, 0x69, 0xd0, 0x88, 0xe3, 0xea, 0xe7, 0xb3, 0xf3, 0xda, 0x12, 0x5b, 0x6b, 0x4b,
+	0x68, 0x04, 0x3a, 0x82, 0xbb, 0xc3, 0x95, 0xf5, 0xed, 0x8c, 0xab, 0x0a, 0xee, 0x9e, 0x95, 0xee,
+	0x1f, 0xc0, 0x4e, 0x8a, 0x89, 0x7c, 0xaf, 0xdb, 0xe8, 0x21, 0x5d, 0x1d, 0x80, 0x91, 0x95, 0xc3,
+	0x38, 0xb1, 0x5e, 0xdb, 0x4d, 0xc1, 0xdd, 0x13, 0xdf, 0xd3, 0x1e, 0xc2, 0xff, 0x1e, 0x15, 0xb2,
+	0xa6, 0xf4, 0x5f, 0xa6, 0xd4, 0x4e, 0xa7, 0x95, 0x94, 0x01, 0x3b, 0x41, 0x6e, 0xb6, 0xdb, 0xcc,
+	0xa4, 0x6e, 0x18, 0x79, 0x4d, 0x8d, 0xb2, 0xa6, 0x86, 0x19, 0xce, 0xec, 0x12, 0x44, 0x0e, 0x6a,
+	0x25, 0x28, 0xb6, 0x4c, 0x03, 0xfa, 0xc3, 0xa2, 0x64, 0x90, 0x37, 0xae, 0x0a, 0x72, 0x93, 0x14,
+	0x9f, 0xc1, 0xde, 0x2f, 0x9c, 0x0d, 0xc3, 0x37, 0x41, 0x3d, 0x9a, 0xc6, 0x42, 0x52, 0x6e, 0x85,
+	0xe7, 0x4c, 0x1b, 0x40, 0x67, 0xc5, 0x08, 0x9c, 0xb4, 0x2a, 0xdb, 0xba, 0x3a, 0xe8, 0x18, 0x95,
+	0xee, 0xb1, 0x13, 0xd9, 0x2b, 0xd5, 0x63, 0x27, 0x22, 0xef, 0xa0, 0x5d, 0x7f, 0xd5, 0x0e, 0x00,
+	0x3e, 0x30, 0x3e, 0xa1, 0x3c, 0x8b, 0x19, 0xfd, 0x16, 0x73, 0x2b, 0x7f, 0x4d, 0x93, 0xc6, 0x00,
+	0x95, 0x94, 0xe8, 0x6e, 0xf5, 0xb6, 0xf5, 0x86, 0x5d, 0x9b, 0x90, 0x57, 0xf9, 0x57, 0xfa, 0x36,
+	0x23, 0x68, 0x06, 0xa8, 0xee, 0xca, 0x6b, 0xa1, 0xdc, 0x36, 0x6a, 0xfe, 0xed, 0x3a, 0x80, 0xbc,
+	0xcc, 0x63, 0xcc, 0xd9, 0x69, 0x1e, 0x9b, 0x3b, 0x3b, 0x7c, 0x3a, 0x5f, 0x60, 0xe5, 0x72, 0x81,
+	0x95, 0xab, 0x05, 0x46, 0x9f, 0x12, 0x8c, 0xbe, 0x24, 0x18, 0x7d, 0x4d, 0x30, 0x9a, 0x27, 0x18,
+	0x7d, 0x4b, 0x30, 0xfa, 0x91, 0x60, 0xe5, 0x2a, 0xc1, 0xe8, 0xf3, 0x12, 0x2b, 0xf3, 0x25, 0x56,
+	0x2e, 0x97, 0x58, 0x19, 0x35, 0xb3, 0xbf, 0xfe, 0xc9, 0xcf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x73,
+	0x97, 0x97, 0xaa, 0xc0, 0x04, 0x00, 0x00,
 }
 
 func (this *InitVertex) Equal(that interface{}) bool {
@@ -919,9 +1100,6 @@ func (this *InitPartition) Equal(that interface{}) bool {
 	if this.PartitionId != that1.PartitionId {
 		return false
 	}
-	if this.NrOfPartitions != that1.NrOfPartitions {
-		return false
-	}
 	return true
 }
 func (this *InitPartitionAck) Equal(that interface{}) bool {
@@ -944,6 +1122,115 @@ func (this *InitPartitionAck) Equal(that interface{}) bool {
 		return false
 	}
 	if this.PartitionId != that1.PartitionId {
+		return false
+	}
+	return true
+}
+func (this *ClusterInfo) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ClusterInfo)
+	if !ok {
+		that2, ok := that.(ClusterInfo)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.PartitionMap) != len(that1.PartitionMap) {
+		return false
+	}
+	for i := range this.PartitionMap {
+		if !this.PartitionMap[i].Equal(that1.PartitionMap[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *PartitionMap) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PartitionMap)
+	if !ok {
+		that2, ok := that.(PartitionMap)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.WorkerPid.Equal(that1.WorkerPid) {
+		return false
+	}
+	if len(this.Partitions) != len(that1.Partitions) {
+		return false
+	}
+	for i := range this.Partitions {
+		if this.Partitions[i] != that1.Partitions[i] {
+			return false
+		}
+	}
+	return true
+}
+func (this *InitWorker) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*InitWorker)
+	if !ok {
+		that2, ok := that.(InitWorker)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.ClusterInfo.Equal(that1.ClusterInfo) {
+		return false
+	}
+	return true
+}
+func (this *InitWorkerAck) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*InitWorkerAck)
+	if !ok {
+		that2, ok := that.(InitWorkerAck)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.WorkerPid.Equal(that1.WorkerPid) {
 		return false
 	}
 	return true
@@ -1061,10 +1348,9 @@ func (this *InitPartition) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 6)
+	s := make([]string, 0, 5)
 	s = append(s, "&command.InitPartition{")
 	s = append(s, "PartitionId: "+fmt.Sprintf("%#v", this.PartitionId)+",\n")
-	s = append(s, "NrOfPartitions: "+fmt.Sprintf("%#v", this.NrOfPartitions)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1075,6 +1361,55 @@ func (this *InitPartitionAck) GoString() string {
 	s := make([]string, 0, 5)
 	s = append(s, "&command.InitPartitionAck{")
 	s = append(s, "PartitionId: "+fmt.Sprintf("%#v", this.PartitionId)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ClusterInfo) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&command.ClusterInfo{")
+	if this.PartitionMap != nil {
+		s = append(s, "PartitionMap: "+fmt.Sprintf("%#v", this.PartitionMap)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *PartitionMap) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&command.PartitionMap{")
+	if this.WorkerPid != nil {
+		s = append(s, "WorkerPid: "+fmt.Sprintf("%#v", this.WorkerPid)+",\n")
+	}
+	s = append(s, "Partitions: "+fmt.Sprintf("%#v", this.Partitions)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *InitWorker) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&command.InitWorker{")
+	if this.ClusterInfo != nil {
+		s = append(s, "ClusterInfo: "+fmt.Sprintf("%#v", this.ClusterInfo)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *InitWorkerAck) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&command.InitWorkerAck{")
+	if this.WorkerPid != nil {
+		s = append(s, "WorkerPid: "+fmt.Sprintf("%#v", this.WorkerPid)+",\n")
+	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1384,11 +1719,6 @@ func (m *InitPartition) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintCommand(dAtA, i, uint64(m.PartitionId))
 	}
-	if m.NrOfPartitions != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintCommand(dAtA, i, uint64(m.NrOfPartitions))
-	}
 	return i, nil
 }
 
@@ -1411,6 +1741,137 @@ func (m *InitPartitionAck) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x8
 		i++
 		i = encodeVarintCommand(dAtA, i, uint64(m.PartitionId))
+	}
+	return i, nil
+}
+
+func (m *ClusterInfo) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterInfo) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.PartitionMap) > 0 {
+		for _, msg := range m.PartitionMap {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintCommand(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *PartitionMap) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PartitionMap) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.WorkerPid != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(m.WorkerPid.Size()))
+		n3, err := m.WorkerPid.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
+	if len(m.Partitions) > 0 {
+		dAtA5 := make([]byte, len(m.Partitions)*10)
+		var j4 int
+		for _, num := range m.Partitions {
+			for num >= 1<<7 {
+				dAtA5[j4] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j4++
+			}
+			dAtA5[j4] = uint8(num)
+			j4++
+		}
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(j4))
+		i += copy(dAtA[i:], dAtA5[:j4])
+	}
+	return i, nil
+}
+
+func (m *InitWorker) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitWorker) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.ClusterInfo != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(m.ClusterInfo.Size()))
+		n6, err := m.ClusterInfo.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n6
+	}
+	return i, nil
+}
+
+func (m *InitWorkerAck) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitWorkerAck) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.WorkerPid != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCommand(dAtA, i, uint64(m.WorkerPid.Size()))
+		n7, err := m.WorkerPid.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n7
 	}
 	return i, nil
 }
@@ -1578,9 +2039,6 @@ func (m *InitPartition) Size() (n int) {
 	if m.PartitionId != 0 {
 		n += 1 + sovCommand(uint64(m.PartitionId))
 	}
-	if m.NrOfPartitions != 0 {
-		n += 1 + sovCommand(uint64(m.NrOfPartitions))
-	}
 	return n
 }
 
@@ -1592,6 +2050,67 @@ func (m *InitPartitionAck) Size() (n int) {
 	_ = l
 	if m.PartitionId != 0 {
 		n += 1 + sovCommand(uint64(m.PartitionId))
+	}
+	return n
+}
+
+func (m *ClusterInfo) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.PartitionMap) > 0 {
+		for _, e := range m.PartitionMap {
+			l = e.Size()
+			n += 1 + l + sovCommand(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *PartitionMap) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.WorkerPid != nil {
+		l = m.WorkerPid.Size()
+		n += 1 + l + sovCommand(uint64(l))
+	}
+	if len(m.Partitions) > 0 {
+		l = 0
+		for _, e := range m.Partitions {
+			l += sovCommand(uint64(e))
+		}
+		n += 1 + sovCommand(uint64(l)) + l
+	}
+	return n
+}
+
+func (m *InitWorker) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ClusterInfo != nil {
+		l = m.ClusterInfo.Size()
+		n += 1 + l + sovCommand(uint64(l))
+	}
+	return n
+}
+
+func (m *InitWorkerAck) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.WorkerPid != nil {
+		l = m.WorkerPid.Size()
+		n += 1 + l + sovCommand(uint64(l))
 	}
 	return n
 }
@@ -1720,7 +2239,6 @@ func (this *InitPartition) String() string {
 	}
 	s := strings.Join([]string{`&InitPartition{`,
 		`PartitionId:` + fmt.Sprintf("%v", this.PartitionId) + `,`,
-		`NrOfPartitions:` + fmt.Sprintf("%v", this.NrOfPartitions) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1731,6 +2249,47 @@ func (this *InitPartitionAck) String() string {
 	}
 	s := strings.Join([]string{`&InitPartitionAck{`,
 		`PartitionId:` + fmt.Sprintf("%v", this.PartitionId) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterInfo) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterInfo{`,
+		`PartitionMap:` + strings.Replace(fmt.Sprintf("%v", this.PartitionMap), "PartitionMap", "PartitionMap", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PartitionMap) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PartitionMap{`,
+		`WorkerPid:` + strings.Replace(fmt.Sprintf("%v", this.WorkerPid), "PID", "actor.PID", 1) + `,`,
+		`Partitions:` + fmt.Sprintf("%v", this.Partitions) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *InitWorker) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&InitWorker{`,
+		`ClusterInfo:` + strings.Replace(fmt.Sprintf("%v", this.ClusterInfo), "ClusterInfo", "ClusterInfo", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *InitWorkerAck) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&InitWorkerAck{`,
+		`WorkerPid:` + strings.Replace(fmt.Sprintf("%v", this.WorkerPid), "PID", "actor.PID", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -2745,25 +3304,6 @@ func (m *InitPartition) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NrOfPartitions", wireType)
-			}
-			m.NrOfPartitions = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommand
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.NrOfPartitions |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCommand(dAtA[iNdEx:])
@@ -2836,6 +3376,436 @@ func (m *InitPartitionAck) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommand(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterInfo) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommand
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PartitionMap", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCommand
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PartitionMap = append(m.PartitionMap, &PartitionMap{})
+			if err := m.PartitionMap[len(m.PartitionMap)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommand(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PartitionMap) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommand
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PartitionMap: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PartitionMap: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkerPid", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCommand
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.WorkerPid == nil {
+				m.WorkerPid = &actor.PID{}
+			}
+			if err := m.WorkerPid.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType == 0 {
+				var v uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowCommand
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.Partitions = append(m.Partitions, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowCommand
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthCommand
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthCommand
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
+				}
+				elementCount = count
+				if elementCount != 0 && len(m.Partitions) == 0 {
+					m.Partitions = make([]uint64, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowCommand
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.Partitions = append(m.Partitions, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Partitions", wireType)
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommand(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InitWorker) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommand
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitWorker: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitWorker: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClusterInfo", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCommand
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ClusterInfo == nil {
+				m.ClusterInfo = &ClusterInfo{}
+			}
+			if err := m.ClusterInfo.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCommand(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InitWorkerAck) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCommand
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitWorkerAck: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitWorkerAck: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkerPid", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCommand
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCommand
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCommand
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.WorkerPid == nil {
+				m.WorkerPid = &actor.PID{}
+			}
+			if err := m.WorkerPid.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCommand(dAtA[iNdEx:])
