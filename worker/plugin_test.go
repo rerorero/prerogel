@@ -1,9 +1,12 @@
 package worker
 
+import "github.com/golang/protobuf/proto"
+
 // MockedPlugin is mocked Plugin struct
 type MockedPlugin struct {
 	NewVertexMock    func(id VertexID) Vertex
 	ListVertexIDMock func(partitionId uint64) ([]VertexID, error)
+	CombineMock      func(messages []*proto.Message) []*proto.Message
 }
 
 func (m *MockedPlugin) NewVertex(id VertexID) Vertex {
@@ -12,6 +15,10 @@ func (m *MockedPlugin) NewVertex(id VertexID) Vertex {
 
 func (m *MockedPlugin) ListVertexID(partitionID uint64) ([]VertexID, error) {
 	return m.ListVertexIDMock(partitionID)
+}
+
+func (m *MockedPlugin) Combine(messages []*proto.Message) []*proto.Message {
+	return m.CombineMock(messages)
 }
 
 // MockedVertex is mocked Vertex struct

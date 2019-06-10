@@ -4,7 +4,8 @@ import "google/protobuf/any.proto";
 import "github.com/AsynkronIT/protoactor-go/actor/protos.proto";
 
 message InitVertex {
-    string vertex_id = 1;
+    uint64 partition_id = 1;
+    string vertex_id = 2;
 }
 message InitVertexAck {
     string vertex_id = 1;
@@ -17,6 +18,9 @@ message SuperStepBarrierAck {
 message SuperStepBarrierPartitionAck {
     uint64 partition_id = 1;
 }
+message SuperStepBarrierWorkerAck {
+    actor.PID worker_pid = 1;
+}
 
 message Compute {
     uint64 super_step = 1;
@@ -28,14 +32,18 @@ message ComputeAck {
 message ComputePartitionAck {
     uint64 partition_id = 1;
 }
+message ComputeWorkerAck {
+    actor.PID worker_pid = 1;
+}
 
 message SuperStepMessage {
     string uuid = 1;
     uint64 super_step = 2;
     string src_vertex_id = 3;
-    actor.PID src_pid = 4;
-    string dest_vertex_id = 5;
-    google.protobuf.Any message = 6;
+    uint64 src_partition_id = 4;
+    actor.PID src_vertex_pid = 5;
+    string dest_vertex_id = 6;
+    google.protobuf.Any message = 7;
 }
 
 // SuperStepMessageAck is used to guarantee receipt messages at each end of super step
@@ -51,10 +59,10 @@ message InitPartitionAck {
 }
 
 message ClusterInfo {
-    repeated PartitionMap partition_map = 1;
+    repeated WorkerInfo worker_info = 1;
 }
 
-message PartitionMap {
+message WorkerInfo {
     actor.PID worker_pid = 1;
     repeated uint64 partitions = 2;
 }

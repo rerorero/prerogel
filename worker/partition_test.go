@@ -48,6 +48,9 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 					defer mockMux.Unlock()
 					switch cmd := c.Message().(type) {
 					case *command.InitVertex:
+						if cmd.PartitionId != 123 {
+							t.Fatal("unexpected partition id")
+						}
 						initializedVertes = append(initializedVertes, cmd.VertexId)
 						c.Send(c.Parent(), &command.InitVertexAck{VertexId: cmd.VertexId})
 					case *command.SuperStepBarrier:
@@ -163,7 +166,7 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 				Uuid:         fmt.Sprintf("uuid-%d", i),
 				SuperStep:    cmd.SuperStep,
 				SrcVertexId:  string(vid[i-1]),
-				SrcPid:       c.Self(),
+				SrcVertexPid: c.Self(),
 				DestVertexId: "dummy",
 				Message:      nil,
 			})
@@ -185,7 +188,7 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 		switch cmd := ctx.Message().(type) {
 		case *command.SuperStepMessage:
 			atomic.AddInt32(&receivedMessage, 1)
-			ctx.Send(cmd.SrcPid, &command.SuperStepMessageAck{Uuid: cmd.Uuid})
+			ctx.Send(cmd.SrcVertexPid, &command.SuperStepMessageAck{Uuid: cmd.Uuid})
 		case *command.ComputePartitionAck:
 			computeAckCh <- cmd
 		}

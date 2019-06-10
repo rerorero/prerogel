@@ -18,6 +18,7 @@ type vertexActor struct {
 	behavior         actor.Behavior
 	plugin           Plugin
 	vertex           Vertex
+	partitionID      uint64
 	halted           bool
 	prevStepMessages []Message
 	messageQueue     []Message
@@ -47,12 +48,13 @@ func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 	}
 	messageID := uuid.New().String()
 	c.ctx.Send(c.ctx.Parent(), &command.SuperStepMessage{
-		Uuid:         messageID,
-		SuperStep:    c.superStep,
-		SrcVertexId:  string(c.vertexActor.vertex.GetID()),
-		SrcPid:       c.ctx.Self(),
-		DestVertexId: string(dest),
-		Message:      msg,
+		Uuid:           messageID,
+		SuperStep:      c.superStep,
+		SrcVertexId:    string(c.vertexActor.vertex.GetID()),
+		SrcPartitionId: c.vertexActor.partitionID,
+		SrcVertexPid:   c.ctx.Self(),
+		DestVertexId:   string(dest),
+		Message:        msg,
 	})
 
 	if c.vertexActor.ackRecorder.addToWaitList(messageID) {
@@ -102,6 +104,7 @@ func (state *vertexActor) waitInit(context actor.Context) {
 			state.ActorUtil.Fail(errors.New("failed to load vertex"))
 			return
 		}
+		state.partitionID = cmd.PartitionId
 		state.ActorUtil.AppendLoggerField("vertexId", state.vertex.GetID())
 		context.Respond(&command.InitVertexAck{
 			VertexId: string(state.vertex.GetID()),

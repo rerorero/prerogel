@@ -66,7 +66,8 @@ func (state *partitionActor) waitInit(context actor.Context) {
 			pid := context.Spawn(state.vertexProps)
 			state.vertices[VertexID(id)] = pid
 			context.Send(pid, &command.InitVertex{
-				VertexId: string(id),
+				VertexId:    string(id),
+				PartitionId: state.partitionID,
 			})
 		}
 		state.resetAckRecorder()
@@ -103,6 +104,7 @@ func (state *partitionActor) waitInitVertexAck(context actor.Context) {
 func (state *partitionActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrier:
+		state.resetAckRecorder()
 		state.broadcastToVertices(context, cmd)
 		state.behavior.Become(state.waitSuperStepBarrierAck)
 		return
@@ -116,7 +118,7 @@ func (state *partitionActor) waitSuperStepBarrierAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrierAck: // sent from parent
 		if state.ackRecorder.ack(cmd.VertexId) {
-			state.ActorUtil.LogWarn(fmt.Sprintf("InitVertexAck duplicated: id=%v", cmd.VertexId))
+			state.ActorUtil.LogWarn(fmt.Sprintf("SuperStepBarrierAck duplicated: id=%v", cmd.VertexId))
 		}
 		if state.ackRecorder.hasCompleted() {
 			context.Send(context.Parent(), &command.SuperStepBarrierPartitionAck{
@@ -136,6 +138,7 @@ func (state *partitionActor) waitSuperStepBarrierAck(context actor.Context) {
 func (state *partitionActor) superstep(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.Compute: // sent from parent
+		state.resetAckRecorder()
 		state.broadcastToVertices(context, cmd)
 		return
 

@@ -1,6 +1,6 @@
 package worker
 
-import "github.com/gogo/protobuf/proto"
+import "github.com/golang/protobuf/proto"
 
 // VertexValue indicates value which a vertex holds.
 type VertexValue interface{}
@@ -42,4 +42,5 @@ type Vertex interface {
 type Plugin interface {
 	NewVertex(id VertexID) Vertex
 	ListVertexID(partitionID uint64) ([]VertexID, error)
+	Combine(messages []*proto.Message) []*proto.Message
 }

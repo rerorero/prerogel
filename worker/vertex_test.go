@@ -43,7 +43,8 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			},
 			cmd: []proto.Message{
 				&command.InitVertex{
-					VertexId: "test-id",
+					VertexId:    "test-id",
+					PartitionId: 123,
 				},
 			},
 			wantRespond: []proto.Message{
@@ -68,7 +69,8 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			},
 			cmd: []proto.Message{
 				&command.InitVertex{
-					VertexId: "test-id",
+					VertexId:    "test-id",
+					PartitionId: 123,
 				},
 				&command.InitVertex{},
 			},
@@ -94,7 +96,8 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			},
 			cmd: []proto.Message{
 				&command.InitVertex{
-					VertexId: "test-id",
+					VertexId:    "test-id",
+					PartitionId: 123,
 				},
 			},
 			wantRespond: []proto.Message{
@@ -185,7 +188,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				},
 			},
 			cmd: []proto.Message{
-				&command.InitVertex{VertexId: "test-id"},
+				&command.InitVertex{VertexId: "test-id", PartitionId: 123},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 				&command.Compute{SuperStep: 1},
@@ -232,7 +235,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				GetIDMock: func() VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
-				&command.InitVertex{VertexId: "test-id"},
+				&command.InitVertex{VertexId: "test-id", PartitionId: 123},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 				&command.SuperStepBarrier{},
@@ -275,7 +278,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				GetIDMock: func() VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
-				&command.InitVertex{VertexId: "test-id"},
+				&command.InitVertex{VertexId: "test-id", PartitionId: 123},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 				&command.SuperStepBarrier{},
@@ -298,18 +301,20 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 			wantComputed: 2,
 			wantSentMessages: []*command.SuperStepMessage{
 				{
-					Uuid:         "", // ignore
-					SuperStep:    0,
-					SrcVertexId:  "test-id",
-					DestVertexId: "dest-0",
-					Message:      timestampToAny(t, 123456, 0),
+					Uuid:           "", // ignore
+					SuperStep:      0,
+					SrcVertexId:    "test-id",
+					SrcPartitionId: 123,
+					DestVertexId:   "dest-0",
+					Message:        timestampToAny(t, 123456, 0),
 				},
 				{
-					Uuid:         "", // ignore
-					SuperStep:    1,
-					SrcVertexId:  "test-id",
-					DestVertexId: "dest-1",
-					Message:      timestampToAny(t, 123456, 1),
+					Uuid:           "", // ignore
+					SuperStep:      1,
+					SrcVertexId:    "test-id",
+					SrcPartitionId: 123,
+					DestVertexId:   "dest-1",
+					Message:        timestampToAny(t, 123456, 1),
 				},
 			},
 		},
@@ -325,7 +330,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				GetIDMock: func() VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
-				&command.InitVertex{VertexId: "test-id"},
+				&command.InitVertex{VertexId: "test-id", PartitionId: 123},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 			},
@@ -373,7 +378,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 					child = ctx.Spawn(props)
 				case *command.SuperStepMessage:
 					sentMessages = append(sentMessages, m)
-					ctx.Send(m.SrcPid, &command.SuperStepMessageAck{
+					ctx.Send(m.SrcVertexPid, &command.SuperStepMessageAck{
 						Uuid: m.Uuid,
 					})
 				case proto.Message:
@@ -412,7 +417,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 			if len(tt.wantSentMessages) != len(sentMessages) {
 				t.Fatalf("unexpected number of messages: %d", len(sentMessages))
 			}
-			ignoreFields := cmpopts.IgnoreFields(command.SuperStepMessage{}, "Uuid", "SrcPid")
+			ignoreFields := cmpopts.IgnoreFields(command.SuperStepMessage{}, "Uuid", "SrcVertexPid")
 			for i := range tt.wantSentMessages {
 				if diff := cmp.Diff(*tt.wantSentMessages[i], *sentMessages[i], ignoreFields); diff != "" {
 					t.Errorf("unexpected messages: %s", diff)
