@@ -13,13 +13,14 @@ import (
 
 type workerActor struct {
 	util.ActorUtil
-	behavior       actor.Behavior
-	plugin         Plugin
-	partitions     map[uint64]*actor.PID
-	partitionProps *actor.Props
-	clusterInfo    *command.ClusterInfo
-	ackRecorder    *ackRecorder
-	ssMessageBuf   map[VertexID][]*command.SuperStepMessage
+	behavior          actor.Behavior
+	plugin            Plugin
+	partitions        map[uint64]*actor.PID
+	partitionProps    *actor.Props
+	clusterInfo       *command.ClusterInfo
+	ackRecorder       *ackRecorder
+	ssMessageBuf      map[VertexID][]*command.SuperStepMessage
+	vertexToPartition map[VertexID]*actor.PID
 }
 
 // NewWorkerActor returns a new actor instance
@@ -51,8 +52,8 @@ func (state *workerActor) Receive(context actor.Context) {
 func (state *workerActor) waitInit(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.InitWorker:
-		info, ok := workerInfoOf(cmd.ClusterInfo, context.Self())
-		if !ok {
+		info := workerInfoOf(cmd.ClusterInfo, context.Self())
+		if info == nil {
 			state.ActorUtil.Fail(fmt.Errorf("worker not assigned: me=%v", context.Self().GetId()))
 			return
 		}
@@ -67,6 +68,14 @@ func (state *workerActor) waitInit(context actor.Context) {
 
 			pid := context.Spawn(state.partitionProps)
 			state.partitions[partition] = pid
+			vids, err := state.plugin.ListVertexID(partition)
+			if err != nil {
+				state.ActorUtil.Fail(fmt.Errorf("failed to ListVertexID(%v)", partition))
+				return
+			}
+			for _, v := range vids {
+				state.vertexToPartition[v] = pid
+			}
 			context.Send(pid, &command.InitPartition{
 				PartitionId: partition,
 			})
@@ -161,30 +170,44 @@ func (state *workerActor) superstep(context actor.Context) {
 		return
 
 	case *command.SuperStepMessage:
-		if _, ok := state.partitions[cmd.SrcPartitionId]; ok {
-			// when sent from my partition, saves to buffer and respond ack to vertex
+		srcWorker := state.findWorkerInfoByPartition(cmd.SrcPartitionId)
+		if srcWorker == nil {
+			state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%+v", cmd))
+			return
+		}
+
+		if srcWorker.WorkerPid.GetId() == context.Self().GetId() {
+			// when sent from my partition, saves to buffer then responds ack to vertex
 			state.ssMessageBuf[VertexID(cmd.DestVertexId)] = append(state.ssMessageBuf[VertexID(cmd.DestVertexId)], cmd)
 			context.Send(cmd.SrcVertexPid, &command.SuperStepMessageAck{
 				Uuid: cmd.Uuid,
 			})
 		} else {
 			// when sent from other worker, route it to vertex
-
+			pid, ok := state.vertexToPartition[VertexID(cmd.DestVertexId)]
+			if !ok {
+				state.ActorUtil.LogError(fmt.Sprintf("[superstep] destination vertex is not found: command=%+v", cmd))
+				return
+			}
+			context.Send(pid, cmd)
 		}
 		return
+
+	case *command.SuperStepMessageAck:
+		// TODO
 	default:
 		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled worker command: command=%+v", cmd))
 		return
 	}
 }
 
-func workerInfoOf(clusterInfo *command.ClusterInfo, pid *actor.PID) (*command.WorkerInfo, bool) {
+func workerInfoOf(clusterInfo *command.ClusterInfo, pid *actor.PID) *command.WorkerInfo {
 	for _, info := range clusterInfo.WorkerInfo {
 		if info.WorkerPid.Id == pid.GetId() {
-			return info, true
+			return info
 		}
 	}
-	return nil, false
+	return nil
 }
 
 func (state *workerActor) broadcastToPartitions(context actor.Context, msg proto.Message) {
@@ -199,6 +222,17 @@ func (state *workerActor) resetAckRecorder() {
 	for id := range state.partitions {
 		state.ackRecorder.addToWaitList(strconv.FormatUint(id, 10))
 	}
+}
+
+func (state *workerActor) findWorkerInfoByPartition(partitionID uint64) *command.WorkerInfo {
+	for _, info := range state.clusterInfo.WorkerInfo {
+		for _, p := range info.Partitions {
+			if p == partitionID {
+				return info
+			}
+		}
+	}
+	return nil
 }
 
 func (state *workerActor) clearSuperStepMessageBuff() {

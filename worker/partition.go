@@ -157,8 +157,14 @@ func (state *partitionActor) superstep(context actor.Context) {
 		// TODO: aggregate halted status
 		return
 
-	case *command.SuperStepMessage: // sent from vertices
-		context.Forward(context.Parent())
+	case *command.SuperStepMessage:
+		if _, ok := state.vertices[VertexID(cmd.SrcVertexId)]; ok {
+			context.Forward(context.Parent())
+		} else if pid, ok := state.vertices[VertexID(cmd.DestVertexId)]; ok {
+			context.Forward(pid)
+		} else {
+			state.ActorUtil.LogError(fmt.Sprintf("[superstep] unknown destination message: msg=%+v", cmd))
+		}
 		return
 
 	default:
