@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/gogo/protobuf/types"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/util"
@@ -41,9 +40,9 @@ func (c *computeContextImpl) ReceivedMessages() []Message {
 }
 
 func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
-	msg, err := types.MarshalAny(m)
+	pb, err := c.vertexActor.plugin.MarshalMessage(m)
 	if err != nil {
-		c.vertexActor.ActorUtil.LogError(fmt.Sprintf("failed to marshal message: %v", err))
+		c.vertexActor.ActorUtil.LogError(fmt.Sprintf("failed to marshal message: id=%v, message=%+v", c.vertexActor.vertex.GetID(), m))
 		return err
 	}
 	messageID := uuid.New().String()
@@ -54,10 +53,10 @@ func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 		SrcPartitionId: c.vertexActor.partitionID,
 		SrcVertexPid:   c.ctx.Self(),
 		DestVertexId:   string(dest),
-		Message:        msg,
+		Message:        pb,
 	})
 
-	if c.vertexActor.ackRecorder.addToWaitList(messageID) {
+	if !c.vertexActor.ackRecorder.addToWaitList(messageID) {
 		c.vertexActor.ActorUtil.LogWarn(fmt.Sprintf("duplicate superstep message: from=%v to=%v", c.vertexActor.vertex.GetID(), dest))
 	}
 
@@ -94,7 +93,7 @@ func (state *vertexActor) Receive(context actor.Context) {
 
 func (state *vertexActor) waitInit(context actor.Context) {
 	switch cmd := context.Message().(type) {
-	case *command.InitVertex:
+	case *command.LoadVertex:
 		if state.vertex != nil {
 			state.ActorUtil.Fail(errors.New("vertex has already initialized"))
 			return
@@ -106,8 +105,9 @@ func (state *vertexActor) waitInit(context actor.Context) {
 		}
 		state.partitionID = cmd.PartitionId
 		state.ActorUtil.AppendLoggerField("vertexId", state.vertex.GetID())
-		context.Respond(&command.InitVertexAck{
-			VertexId: string(state.vertex.GetID()),
+		context.Respond(&command.LoadVertexAck{
+			PartitionId: cmd.PartitionId,
+			VertexId:    string(state.vertex.GetID()),
 		})
 		state.behavior.Become(state.superstep)
 		state.ActorUtil.LogDebug("vertex has initialized")
@@ -142,7 +142,12 @@ func (state *vertexActor) superstep(context actor.Context) {
 			return
 		}
 		// TODO: verify cmd.SuperStep
-		state.messageQueue = append(state.messageQueue, cmd.Message)
+		pb, err := state.plugin.UnmarshalMessage(cmd.Message)
+		if err != nil {
+			state.ActorUtil.Fail(fmt.Errorf("failed to unmarshal message: %+v", *cmd))
+			return
+		}
+		state.messageQueue = append(state.messageQueue, pb)
 		state.halted = false
 		context.Respond(&command.SuperStepMessageAck{
 			Uuid: cmd.Uuid,
@@ -154,7 +159,7 @@ func (state *vertexActor) superstep(context actor.Context) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("unhaneled message id=%v, compute() has already completed", cmd.Uuid))
 			return
 		}
-		if state.ackRecorder.ack(cmd.Uuid) {
+		if !state.ackRecorder.ack(cmd.Uuid) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("duplicated or unhaneled message: uuid=%v", cmd.Uuid))
 		}
 		if state.ackRecorder.hasCompleted() {

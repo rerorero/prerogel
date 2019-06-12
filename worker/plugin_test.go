@@ -1,12 +1,16 @@
 package worker
 
-import "github.com/golang/protobuf/proto"
+import (
+	"github.com/golang/protobuf/ptypes/any"
+)
 
 // MockedPlugin is mocked Plugin struct
 type MockedPlugin struct {
-	NewVertexMock    func(id VertexID) Vertex
-	ListVertexIDMock func(partitionId uint64) ([]VertexID, error)
-	CombineMock      func(messages []*proto.Message) []*proto.Message
+	NewVertexMock        func(id VertexID) Vertex
+	ListVertexIDMock     func(partitionId uint64) ([]VertexID, error)
+	MarshalMessageMock   func(msg Message) (*any.Any, error)
+	UnmarshalMessageMock func(a *any.Any) (Message, error)
+	GetCombinerMock      func() func(VertexID, []Message) ([]Message, error)
 }
 
 func (m *MockedPlugin) NewVertex(id VertexID) Vertex {
@@ -17,8 +21,16 @@ func (m *MockedPlugin) ListVertexID(partitionID uint64) ([]VertexID, error) {
 	return m.ListVertexIDMock(partitionID)
 }
 
-func (m *MockedPlugin) Combine(messages []*proto.Message) []*proto.Message {
-	return m.CombineMock(messages)
+func (m *MockedPlugin) MarshalMessage(msg Message) (*any.Any, error) {
+	return m.MarshalMessageMock(msg)
+}
+
+func (m *MockedPlugin) UnmarshalMessage(a *any.Any) (Message, error) {
+	return m.UnmarshalMessageMock(a)
+}
+
+func (m *MockedPlugin) GetCombiner() func(destination VertexID, messages []Message) ([]Message, error) {
+	return m.GetCombinerMock()
 }
 
 // MockedVertex is mocked Vertex struct

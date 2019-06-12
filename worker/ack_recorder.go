@@ -10,18 +10,18 @@ func (ar *ackRecorder) clear() {
 
 func (ar *ackRecorder) addToWaitList(id string) bool {
 	if _, ok := ar.m[id]; ok {
-		return true
+		return false
 	}
 	ar.m[id] = struct{}{}
-	return false
+	return true
 }
 
 func (ar *ackRecorder) ack(id string) bool {
 	if _, ok := ar.m[id]; !ok {
-		return true
+		return false
 	}
 	delete(ar.m, id)
-	return false
+	return true
 }
 
 func (ar *ackRecorder) hasCompleted() bool {

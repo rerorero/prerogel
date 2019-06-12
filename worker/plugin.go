@@ -1,6 +1,8 @@
 package worker
 
-import "github.com/golang/protobuf/proto"
+import (
+	"github.com/golang/protobuf/ptypes/any"
+)
 
 // VertexValue indicates value which a vertex holds.
 type VertexValue interface{}
@@ -9,7 +11,7 @@ type VertexValue interface{}
 type EdgeValue interface{}
 
 // Message is a message sent from the vertex to another vertex during super-step.
-type Message proto.Message
+type Message interface{}
 
 // VertexID is id of vertex
 type VertexID string
@@ -41,6 +43,8 @@ type Vertex interface {
 // Plugin is a plugin that provides graph computation.
 type Plugin interface {
 	NewVertex(id VertexID) Vertex
-	ListVertexID(partitionID uint64) ([]VertexID, error)
-	Combine(messages []*proto.Message) []*proto.Message
+	Partition(VertexID, numOfPartitions uint64) (uint64, error)
+	MarshalMessage(msg Message) (*any.Any, error)
+	UnmarshalMessage(pb *any.Any) (Message, error)
+	GetCombiner() func(destination VertexID, messages []Message) ([]Message, error)
 }

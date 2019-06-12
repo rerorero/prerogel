@@ -7,6 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
+
+	"github.com/golang/protobuf/ptypes/any"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
@@ -148,14 +152,14 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 		SuperStep:    0,
 		SrcVertexId:  "foo",
 		DestVertexId: "test-id",
-		Message:      &types.Any{Value: []byte("test1")},
+		Message:      &any.Any{TypeUrl: "com.example/test", Value: []byte("test1")},
 	}
 	msg2 := &command.SuperStepMessage{
 		Uuid:         "b",
 		SuperStep:    0,
 		SrcVertexId:  "bar",
 		DestVertexId: "test-id",
-		Message:      &types.Any{Value: []byte("test2")},
+		Message:      &any.Any{TypeUrl: "com.example/test", Value: []byte("test2")},
 	}
 
 	tests := []struct {
@@ -220,7 +224,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 						t.Fatalf("unexpected step: %v, %v", ctx.SuperStep(), computed)
 					}
 					if ctx.SuperStep() == 1 {
-						if diff := cmp.Diff([]Message{msg1.Message, msg2.Message}, ctx.ReceivedMessages()); diff != "" {
+						if diff := cmp.Diff([]Message{"test1", "test2"}, ctx.ReceivedMessages()); diff != "" {
 							t.Fatalf("unexpected received messages: %s", diff)
 						}
 					} else if ctx.ReceivedMessages() != nil {
@@ -371,6 +375,33 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 						NewVertexMock: func(id VertexID) Vertex {
 							return tt.vertex
 						},
+						UnmarshalMessageMock: func(a *any.Any) (Message, error) {
+							switch a.TypeUrl {
+							case "com.example/test":
+								return string(a.Value), nil
+							case "com.github/rerorero/" + proto.MessageName(&types.Timestamp{}):
+								var ts types.Timestamp
+								if err := ptypes.UnmarshalAny(a, &ts); err != nil {
+									t.Fatal(err)
+								}
+								return &ts, nil
+							}
+							t.Fatalf("unknown type url: %s", a.TypeUrl)
+							return nil, nil
+						},
+						MarshalMessageMock: func(msg Message) (i *any.Any, e error) {
+							switch m := msg.(type) {
+							case string:
+								return &any.Any{
+									TypeUrl: "com.example/test",
+									Value:   []byte(m),
+								}, nil
+							case *types.Timestamp:
+								return timestampToAny(t, m.Seconds, m.Nanos), nil
+							}
+							t.Fatalf("unknown type: %+v", m)
+							return nil, nil
+						},
 					}
 					props := actor.PropsFromProducer(func() actor.Actor {
 						return NewVertexActor(plugin, logger)
@@ -427,13 +458,17 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 	}
 }
 
-func timestampToAny(t *testing.T, sec int64, nano int32) *types.Any {
-	a, err := types.MarshalAny(&types.Timestamp{
+func timestampToAny(t *testing.T, sec int64, nano int32) *any.Any {
+	ts := types.Timestamp{
 		Seconds: sec,
 		Nanos:   nano,
-	})
+	}
+	b, err := proto.Marshal(&ts)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return a
+	return &any.Any{
+		TypeUrl: "com.github/rerorero/" + proto.MessageName(&ts),
+		Value:   b,
+	}
 }

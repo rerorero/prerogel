@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/util"
 	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus"
@@ -52,27 +51,12 @@ func (state *partitionActor) waitInit(context actor.Context) {
 		state.partitionID = cmd.PartitionId
 		state.ActorUtil.AppendLoggerField("partitionId", cmd.PartitionId)
 
-		ids, err := state.plugin.ListVertexID(cmd.PartitionId)
-		if err != nil {
-			state.ActorUtil.Fail(errors.Wrap(err, "failed to ListVertexID()"))
-			return
-		}
-		for _, id := range ids {
-			if _, ok := state.vertices[id]; ok {
-				state.ActorUtil.LogWarn(fmt.Sprintf("vertiex=%v has already created", id))
-				continue
-			}
-
-			pid := context.Spawn(state.vertexProps)
-			state.vertices[VertexID(id)] = pid
-			context.Send(pid, &command.InitVertex{
-				VertexId:    string(id),
-				PartitionId: state.partitionID,
-			})
-		}
+		context.Send(context.Parent(), &command.InitPartitionAck{
+			PartitionId: state.partitionID,
+		})
 		state.resetAckRecorder()
-		state.behavior.Become(state.waitInitVertexAck)
-		state.ActorUtil.LogDebug("become waitInitVertexAck")
+		state.behavior.Become(state.idle)
+		state.ActorUtil.LogInfo("initialization partition has completed")
 		return
 
 	default:
@@ -81,28 +65,22 @@ func (state *partitionActor) waitInit(context actor.Context) {
 	}
 }
 
-func (state *partitionActor) waitInitVertexAck(context actor.Context) {
-	switch cmd := context.Message().(type) {
-	case *command.InitVertexAck: // sent from parent
-		if state.ackRecorder.ack(cmd.VertexId) {
-			state.ActorUtil.LogWarn(fmt.Sprintf("InitVertexAck duplicated: id=%v", cmd.VertexId))
-		}
-		if state.ackRecorder.hasCompleted() {
-			context.Send(context.Parent(), &command.InitPartitionAck{
-				PartitionId: state.partitionID,
-			})
-			state.resetAckRecorder()
-			state.behavior.Become(state.idle)
-			state.ActorUtil.LogInfo("initialization partition has completed")
-		}
-	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitInitVertexAck] unhandled partition command: command=%+v", cmd))
-		return
-	}
-}
-
 func (state *partitionActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
+	case *command.LoadVertex:
+		vid := VertexID(cmd.VertexId)
+		if _, ok := state.vertices[vid]; ok {
+			state.ActorUtil.LogError(fmt.Sprintf("vertex=%v has already created", cmd.VertexId))
+		}
+		pid := context.Spawn(state.vertexProps)
+		state.vertices[vid] = pid
+		context.Send(pid, cmd)
+		return
+
+	case *command.LoadVertexAck:
+		context.Send(context.Parent(), cmd)
+		return
+
 	case *command.SuperStepBarrier:
 		state.resetAckRecorder()
 		state.broadcastToVertices(context, cmd)
@@ -117,7 +95,7 @@ func (state *partitionActor) idle(context actor.Context) {
 func (state *partitionActor) waitSuperStepBarrierAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrierAck: // sent from parent
-		if state.ackRecorder.ack(cmd.VertexId) {
+		if !state.ackRecorder.ack(cmd.VertexId) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("SuperStepBarrierAck duplicated: id=%v", cmd.VertexId))
 		}
 		if state.ackRecorder.hasCompleted() {
@@ -143,7 +121,7 @@ func (state *partitionActor) superstep(context actor.Context) {
 		return
 
 	case *command.ComputeAck: // sent from vertices
-		if state.ackRecorder.ack(cmd.VertexId) {
+		if !state.ackRecorder.ack(cmd.VertexId) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("ComputeAck duplicated: id=%v", cmd.VertexId))
 		}
 		if state.ackRecorder.hasCompleted() {
