@@ -43,7 +43,7 @@ type Vertex interface {
 // Plugin is a plugin that provides graph computation.
 type Plugin interface {
 	NewVertex(id VertexID) Vertex
-	Partition(VertexID, numOfPartitions uint64) (uint64, error)
+	Partition(vertex VertexID, numOfPartitions uint64) (uint64, error)
 	MarshalMessage(msg Message) (*any.Any, error)
 	UnmarshalMessage(pb *any.Any) (Message, error)
 	GetCombiner() func(destination VertexID, messages []Message) ([]Message, error)

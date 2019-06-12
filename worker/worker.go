@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/uuid"
-
-	"github.com/pkg/errors"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/gogo/protobuf/proto"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/util"
 	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus"
@@ -27,17 +25,17 @@ type workerActor struct {
 	partitions          map[uint64]*actor.PID
 	partitionProps      *actor.Props
 	clusterInfo         *command.ClusterInfo
-	ackRecorder         *ackRecorder
-	combinedMessagesAck *ackRecorder
+	ackRecorder         *util.AckRecorder
+	combinedMessagesAck *util.AckRecorder
 	ssMessageBuf        *superStepMsgBuf
 }
 
 // NewWorkerActor returns a new actor instance
 func NewWorkerActor(plugin Plugin, partitionProps *actor.Props, logger *logrus.Logger) actor.Actor {
-	ar := &ackRecorder{}
-	ar.clear()
-	mar := &ackRecorder{}
-	mar.clear()
+	ar := &util.AckRecorder{}
+	ar.Clear()
+	mar := &util.AckRecorder{}
+	mar.Clear()
 	a := &workerActor{
 		ActorUtil: util.ActorUtil{
 			Logger: logger,
@@ -99,10 +97,10 @@ func (state *workerActor) waitInit(context actor.Context) {
 func (state *workerActor) waitPartitionInitAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.InitPartitionAck:
-		if !state.ackRecorder.ack(strconv.FormatUint(cmd.PartitionId, 10)) {
+		if !state.ackRecorder.Ack(strconv.FormatUint(cmd.PartitionId, 10)) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("InitPartitionAck duplicated: id=%v", cmd.PartitionId))
 		}
-		if state.ackRecorder.hasCompleted() {
+		if state.ackRecorder.HasCompleted() {
 			context.Send(context.Parent(), &command.InitWorkerAck{
 				WorkerPid: context.Self(),
 			})
@@ -123,9 +121,15 @@ func (state *workerActor) idle(context actor.Context) {
 		state.ssMessageBuf.clear()
 		state.broadcastToPartitions(context, cmd)
 		state.resetAckRecorder()
-		state.combinedMessagesAck.clear()
+		state.combinedMessagesAck.Clear()
 		state.behavior.Become(state.superstep)
 		return
+
+	case *command.SuperStepMessage:
+		// need to handle because other workers might still run super-step
+		state.handleSuperStepMessage(context, cmd)
+		return
+
 	default:
 		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled worker command: command=%+v", cmd))
 		return
@@ -135,10 +139,10 @@ func (state *workerActor) idle(context actor.Context) {
 func (state *workerActor) waitSuperStepBarrierAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrierPartitionAck:
-		if !state.ackRecorder.ack(strconv.FormatUint(cmd.PartitionId, 10)) {
+		if !state.ackRecorder.Ack(strconv.FormatUint(cmd.PartitionId, 10)) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("SuperStepBarrierAck duplicated: id=%v", cmd.PartitionId))
 		}
-		if state.ackRecorder.hasCompleted() {
+		if state.ackRecorder.HasCompleted() {
 			context.Send(context.Parent(), &command.SuperStepBarrierWorkerAck{
 				WorkerPid: context.Self(),
 			})
@@ -161,72 +165,78 @@ func (state *workerActor) superstep(context actor.Context) {
 		return
 
 	case *command.ComputePartitionAck:
-		if !state.ackRecorder.ack(strconv.FormatUint(cmd.PartitionId, 10)) {
+		if !state.ackRecorder.Ack(strconv.FormatUint(cmd.PartitionId, 10)) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("ComputeAck duplicated: id=%v", cmd.PartitionId))
 		}
-		if state.ackRecorder.hasCompleted() {
+		if state.ackRecorder.HasCompleted() {
 			if state.ssMessageBuf.numOfMessage() > 0 {
 				if err := state.ssMessageBuf.combine(); err != nil {
 					state.ActorUtil.LogError(fmt.Sprintf("failed to combine: %v", err))
 				}
-				// todo
-				//for dest, msgs := range state.ssMessageBuf.buf {
-				//	state.findWorkerInfoByPartition()
-				//}
+				// TODO: it can reduce messages by aggregating by each destination worker
+				for dest, msgs := range state.ssMessageBuf.buf {
+					destWorker := state.findWorkerInfoByVertex(dest)
+					if destWorker == nil {
+						state.ActorUtil.Fail(fmt.Errorf("failed to find worker: %v", dest))
+						return
+					}
+					for _, m := range msgs {
+						context.Send(destWorker.WorkerPid, m)
+					}
+				}
+				// wait for SuperStepMessageAck from other workers
 			} else {
-				// TODO:
-				//context.Send(context.Parent(), &command.ComputeWorkerAck{
-				//	WorkerPid: context.Self(),
-				//})
-				//state.resetAckRecorder()
-				//state.behavior.Become(state.idle)
-				//state.ActorUtil.LogInfo("compute has completed for worker")
+				state.computeAckAndBecomeIdle(context)
 			}
 		}
 		// TODO: aggregate halted status
 		return
 
 	case *command.SuperStepMessage:
-		srcWorker := state.findWorkerInfoByPartition(cmd.SrcPartitionId)
-		if srcWorker == nil {
-			state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%+v", cmd))
-			return
-		}
-
-		if srcWorker.WorkerPid.GetId() == context.Self().GetId() {
-			// when sent from my partition, saves to buffer then responds ack to vertex
-			state.ssMessageBuf.add(cmd)
-			if cmd.SrcVertexPid == nil {
-				state.ActorUtil.Fail(fmt.Errorf("received message having invalid SrcertexPid: command=%+v", cmd))
-				return
-			}
-			context.Send(cmd.SrcVertexPid, &command.SuperStepMessageAck{
-				Uuid: cmd.Uuid,
-			})
-		} else {
-			// when sent from other worker, route it to vertex
-			destWorker := state.findWorkerInfoByVertex(VertexID(cmd.DestVertexId))
-			if destWorker == nil {
-				state.ActorUtil.LogError(fmt.Sprintf("[superstep] destination worker is not found: command=%+v", cmd))
-				return
-			}
-			context.Send(pid, cmd)
-		}
+		state.handleSuperStepMessage(context, cmd)
 		return
 
 	case *command.SuperStepMessageAck:
-		//if state.combinedMessagesAck.ack(cmd.Uuid) {
-		//	// original message was sent from my partition
-		//	if state.combinedMessagesAck.hasCompleted() {
-		//
-		//	}
-		//}
+		state.ssMessageBuf.remove(cmd)
+		if state.ssMessageBuf.numOfMessage() == 0 {
+			state.computeAckAndBecomeIdle(context)
+		}
+
 		return
 
 	default:
 		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled worker command: command=%+v", cmd))
 		return
 	}
+}
+
+func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *command.SuperStepMessage) {
+	srcWorker := state.findWorkerInfoByPartition(cmd.SrcPartitionId)
+	if srcWorker == nil {
+		state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%+v", cmd))
+		return
+	}
+
+	if srcWorker.WorkerPid.GetId() == context.Self().GetId() {
+		// when sent from my partition, saves to buffer then responds Ack to vertex
+		state.ssMessageBuf.add(cmd)
+		if cmd.SrcVertexPid == nil {
+			state.ActorUtil.Fail(fmt.Errorf("received message having invalid SrcertexPid: command=%+v", cmd))
+			return
+		}
+		context.Send(cmd.SrcVertexPid, &command.SuperStepMessageAck{
+			Uuid: cmd.Uuid,
+		})
+	} else {
+		// when sent from other worker, route it to vertex
+		destWorker := state.findWorkerInfoByVertex(VertexID(cmd.DestVertexId))
+		if destWorker == nil {
+			state.ActorUtil.LogError(fmt.Sprintf("[superstep] destination worker is not found: command=%+v", cmd))
+			return
+		}
+		context.Send(destWorker.WorkerPid, cmd)
+	}
+	return
 }
 
 func workerInfoOf(clusterInfo *command.ClusterInfo, pid *actor.PID) *command.WorkerInfo {
@@ -254,9 +264,9 @@ func (state *workerActor) broadcastToPartitions(context actor.Context, msg proto
 }
 
 func (state *workerActor) resetAckRecorder() {
-	state.ackRecorder.clear()
+	state.ackRecorder.Clear()
 	for id := range state.partitions {
-		state.ackRecorder.addToWaitList(strconv.FormatUint(id, 10))
+		state.ackRecorder.AddToWaitList(strconv.FormatUint(id, 10))
 	}
 }
 
@@ -311,6 +321,22 @@ func (buf *superStepMsgBuf) numOfMessage() int {
 
 func (buf *superStepMsgBuf) add(m *command.SuperStepMessage) {
 	buf.buf[VertexID(m.DestVertexId)] = append(buf.buf[VertexID(m.DestVertexId)], m)
+}
+
+func (buf *superStepMsgBuf) remove(ack *command.SuperStepMessageAck) {
+	for vid, msgs := range buf.buf {
+		for i, m := range msgs {
+			if m.Uuid == ack.Uuid {
+				removed := append(msgs[:i], msgs[i+1:]...)
+				if len(removed) == 0 {
+					delete(buf.buf, vid)
+				} else {
+					buf.buf[vid] = removed
+				}
+				return
+			}
+		}
+	}
 }
 
 func (buf *superStepMsgBuf) combine() error {

@@ -21,7 +21,7 @@ type vertexActor struct {
 	halted           bool
 	prevStepMessages []Message
 	messageQueue     []Message
-	ackRecorder      *ackRecorder
+	ackRecorder      *util.AckRecorder
 	computeRespondTo *actor.PID
 }
 
@@ -56,7 +56,7 @@ func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 		Message:        pb,
 	})
 
-	if !c.vertexActor.ackRecorder.addToWaitList(messageID) {
+	if !c.vertexActor.ackRecorder.AddToWaitList(messageID) {
 		c.vertexActor.ActorUtil.LogWarn(fmt.Sprintf("duplicate superstep message: from=%v to=%v", c.vertexActor.vertex.GetID(), dest))
 	}
 
@@ -70,8 +70,8 @@ func (c *computeContextImpl) VoteToHalt() {
 
 // NewVertexActor returns an actor instance
 func NewVertexActor(plugin Plugin, logger *logrus.Logger) actor.Actor {
-	ar := &ackRecorder{}
-	ar.clear()
+	ar := &util.AckRecorder{}
+	ar.Clear()
 	a := &vertexActor{
 		plugin: plugin,
 		ActorUtil: util.ActorUtil{
@@ -155,14 +155,14 @@ func (state *vertexActor) superstep(context actor.Context) {
 		return
 
 	case *command.SuperStepMessageAck:
-		if state.ackRecorder.hasCompleted() {
+		if state.ackRecorder.HasCompleted() {
 			state.ActorUtil.LogWarn(fmt.Sprintf("unhaneled message id=%v, compute() has already completed", cmd.Uuid))
 			return
 		}
-		if !state.ackRecorder.ack(cmd.Uuid) {
+		if !state.ackRecorder.Ack(cmd.Uuid) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("duplicated or unhaneled message: uuid=%v", cmd.Uuid))
 		}
-		if state.ackRecorder.hasCompleted() {
+		if state.ackRecorder.HasCompleted() {
 			state.respondComputeAck(context)
 		}
 		return
@@ -188,7 +188,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 		return
 	}
 
-	state.ackRecorder.clear()
+	state.ackRecorder.Clear()
 	computeContext := &computeContextImpl{
 		superStep:   cmd.SuperStep,
 		ctx:         ctx,
@@ -199,7 +199,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 		return
 	}
 
-	if state.ackRecorder.hasCompleted() {
+	if state.ackRecorder.HasCompleted() {
 		state.respondComputeAck(ctx)
 	}
 	return

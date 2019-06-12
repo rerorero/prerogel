@@ -35,24 +35,20 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 		{
 			name: "transition from init to superstep",
 			fields: fields{
-				plugin: &MockedPlugin{
-					ListVertexIDMock: func(partitionId uint64) (ids []VertexID, e error) {
-						if partitionId != 123 {
-							t.Fatal("unexpected partition id")
-						}
-						return []VertexID{"test1", "test2", "test3"}, nil
-					},
-				},
+				plugin: &MockedPlugin{},
 				vertexProps: actor.PropsFromFunc(func(c actor.Context) {
 					mockMux.Lock()
 					defer mockMux.Unlock()
 					switch cmd := c.Message().(type) {
-					case *command.InitVertex:
+					case *command.LoadVertex:
 						if cmd.PartitionId != 123 {
 							t.Fatal("unexpected partition id")
 						}
 						initializedVertes = append(initializedVertes, cmd.VertexId)
-						c.Send(c.Parent(), &command.InitVertexAck{VertexId: cmd.VertexId})
+						c.Send(c.Parent(), &command.LoadVertexAck{
+							PartitionId: 123,
+							VertexId:    cmd.VertexId,
+						})
 					case *command.SuperStepBarrier:
 						i := atomic.AddInt32(&barrierAckCount, 1)
 						c.Send(c.Parent(), &command.SuperStepBarrierAck{VertexId: initializedVertes[i-1]})
@@ -63,29 +59,31 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 				&command.InitPartition{
 					PartitionId: 123,
 				},
+				&command.LoadVertex{PartitionId: 123, VertexId: "test1"},
+				&command.LoadVertex{PartitionId: 123, VertexId: "test2"},
+				&command.LoadVertex{PartitionId: 123, VertexId: "test3"},
 				&command.SuperStepBarrier{},
 			},
 			wantRespond: []proto.Message{
 				&command.InitPartitionAck{PartitionId: 123},
+				&command.LoadVertexAck{PartitionId: 123, VertexId: "test1"},
+				&command.LoadVertexAck{PartitionId: 123, VertexId: "test2"},
+				&command.LoadVertexAck{PartitionId: 123, VertexId: "test3"},
 				&command.SuperStepBarrierPartitionAck{PartitionId: 123},
 			},
 			wantInitializedVertex: []string{"test1", "test2", "test3"},
 		},
 		{
-			name: "superstep, compute, ack",
+			name: "superstep, compute, Ack",
 			fields: fields{
-				plugin: &MockedPlugin{
-					ListVertexIDMock: func(partitionId uint64) (ids []VertexID, e error) {
-						return []VertexID{"test1", "test2", "test3"}, nil
-					},
-				},
+				plugin: &MockedPlugin{},
 				vertexProps: actor.PropsFromFunc(func(c actor.Context) {
 					mockMux.Lock()
 					defer mockMux.Unlock()
 					switch cmd := c.Message().(type) {
-					case *command.InitVertex:
+					case *command.LoadVertex:
 						initializedVertes = append(initializedVertes, cmd.VertexId)
-						c.Send(c.Parent(), &command.InitVertexAck{VertexId: cmd.VertexId})
+						c.Send(c.Parent(), &command.LoadVertexAck{VertexId: cmd.VertexId, PartitionId: cmd.PartitionId})
 					case *command.SuperStepBarrier:
 						c.Send(c.Parent(), &command.SuperStepBarrierAck{VertexId: initializedVertes[barrierAckCount]})
 						barrierAckCount++
@@ -99,11 +97,17 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 				&command.InitPartition{
 					PartitionId: 123,
 				},
+				&command.LoadVertex{PartitionId: 123, VertexId: "test1"},
+				&command.LoadVertex{PartitionId: 123, VertexId: "test2"},
+				&command.LoadVertex{PartitionId: 123, VertexId: "test3"},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 			},
 			wantRespond: []proto.Message{
 				&command.InitPartitionAck{PartitionId: 123},
+				&command.LoadVertexAck{PartitionId: 123, VertexId: "test1"},
+				&command.LoadVertexAck{PartitionId: 123, VertexId: "test2"},
+				&command.LoadVertexAck{PartitionId: 123, VertexId: "test3"},
 				&command.SuperStepBarrierPartitionAck{PartitionId: 123},
 				&command.ComputePartitionAck{PartitionId: 123},
 			},
@@ -125,7 +129,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 			for i, cmd := range tt.cmd {
 				res, err := proxy.SendAndAwait(context, cmd, tt.wantRespond[i], time.Second)
 				if (err != nil) != (tt.wantRespond[i] == nil) {
-					t.Fatalf("i=%d: %v ack %d", i, err, barrierAckCount)
+					t.Fatalf("i=%d: %v Ack %d", i, err, barrierAckCount)
 				}
 				if diff := cmp.Diff(tt.wantRespond[i], res); diff != "" {
 					t.Errorf("i=%d: unexpected respond: %s", i, diff)
@@ -145,18 +149,14 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 
 func Test_partitionActor_Receive_superstep(t *testing.T) {
 	logger, _ := test.NewNullLogger()
-	vid := []VertexID{"test1", "test2", "test3"}
+	vid := []VertexID{"test-1", "test-2", "test-3"}
 	var called int32
 	var messageAckCount int32
-	plugin := &MockedPlugin{
-		ListVertexIDMock: func(partitionId uint64) (ids []VertexID, e error) {
-			return vid, nil
-		},
-	}
+	plugin := &MockedPlugin{}
 	vertexProps := actor.PropsFromFunc(func(c actor.Context) {
 		switch cmd := c.Message().(type) {
-		case *command.InitVertex:
-			c.Send(c.Parent(), &command.InitVertexAck{VertexId: cmd.VertexId})
+		case *command.LoadVertex:
+			c.Send(c.Parent(), &command.LoadVertexAck{VertexId: cmd.VertexId, PartitionId: cmd.PartitionId})
 		case *command.SuperStepBarrier:
 			i := atomic.AddInt32(&called, 1)
 			c.Send(c.Parent(), &command.SuperStepBarrierAck{VertexId: string(vid[i-1])})
@@ -200,6 +200,12 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 		PartitionId: 123,
 	}, &command.InitPartitionAck{}, time.Second); err != nil {
 		t.Fatal(err)
+	}
+	for _, id := range vid {
+		if _, err := proxy.SendAndAwait(context, &command.LoadVertex{PartitionId: 123, VertexId: string(id)},
+			&command.LoadVertexAck{}, time.Second); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// step 0

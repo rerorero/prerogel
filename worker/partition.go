@@ -16,13 +16,13 @@ type partitionActor struct {
 	plugin      Plugin
 	vertices    map[VertexID]*actor.PID
 	vertexProps *actor.Props
-	ackRecorder *ackRecorder
+	ackRecorder *util.AckRecorder
 }
 
 // NewPartitionActor returns an actor instance
 func NewPartitionActor(plugin Plugin, vertexProps *actor.Props, logger *logrus.Logger) actor.Actor {
-	ar := &ackRecorder{}
-	ar.clear()
+	ar := &util.AckRecorder{}
+	ar.Clear()
 	a := &partitionActor{
 		plugin: plugin,
 		ActorUtil: util.ActorUtil{
@@ -82,6 +82,10 @@ func (state *partitionActor) idle(context actor.Context) {
 		return
 
 	case *command.SuperStepBarrier:
+		if len(state.vertices) == 0 {
+			state.ActorUtil.LogInfo(fmt.Sprintf("[idle] no vertex is assigned"))
+			return
+		}
 		state.resetAckRecorder()
 		state.broadcastToVertices(context, cmd)
 		state.behavior.Become(state.waitSuperStepBarrierAck)
@@ -95,10 +99,10 @@ func (state *partitionActor) idle(context actor.Context) {
 func (state *partitionActor) waitSuperStepBarrierAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrierAck: // sent from parent
-		if !state.ackRecorder.ack(cmd.VertexId) {
+		if !state.ackRecorder.Ack(cmd.VertexId) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("SuperStepBarrierAck duplicated: id=%v", cmd.VertexId))
 		}
-		if state.ackRecorder.hasCompleted() {
+		if state.ackRecorder.HasCompleted() {
 			context.Send(context.Parent(), &command.SuperStepBarrierPartitionAck{
 				PartitionId: state.partitionID,
 			})
@@ -121,10 +125,10 @@ func (state *partitionActor) superstep(context actor.Context) {
 		return
 
 	case *command.ComputeAck: // sent from vertices
-		if !state.ackRecorder.ack(cmd.VertexId) {
+		if !state.ackRecorder.Ack(cmd.VertexId) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("ComputeAck duplicated: id=%v", cmd.VertexId))
 		}
-		if state.ackRecorder.hasCompleted() {
+		if state.ackRecorder.HasCompleted() {
 			context.Send(context.Parent(), &command.ComputePartitionAck{
 				PartitionId: state.partitionID,
 			})
@@ -159,8 +163,8 @@ func (state *partitionActor) broadcastToVertices(context actor.Context, msg inte
 }
 
 func (state *partitionActor) resetAckRecorder() {
-	state.ackRecorder.clear()
+	state.ackRecorder.Clear()
 	for id := range state.vertices {
-		state.ackRecorder.addToWaitList(string(id))
+		state.ackRecorder.AddToWaitList(string(id))
 	}
 }

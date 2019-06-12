@@ -61,7 +61,7 @@ func (proxy *ActorProxy) SendAndAwait(ctx actor.SenderContext, req proto.Message
 	}
 }
 
-// SendAndAwait sends a request via proxy
+// Send sends a request via proxy
 func (proxy *ActorProxy) Send(ctx actor.SenderContext, req proto.Message) {
 	msg := &forward{req, nil, nil}
 	ctx.Send(proxy.parent, msg)

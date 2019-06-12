@@ -1,44 +1,44 @@
-package worker
+package util
 
 import "testing"
 
 func Test_ackRecorder_clear(t *testing.T) {
-	ar := &ackRecorder{}
-	ar.clear()
+	ar := &AckRecorder{}
+	ar.Clear()
 	if len(ar.m) != 0 {
 		t.Fatal("not empty")
 	}
-	if !ar.hasCompleted() {
+	if !ar.HasCompleted() {
 		t.Fatal("completed")
 	}
 
-	if !ar.addToWaitList("test") {
+	if !ar.AddToWaitList("test") {
 		t.Fatal("dup")
 	}
-	if ar.hasCompleted() {
+	if ar.HasCompleted() {
 		t.Fatal("completed")
 	}
-	if ar.addToWaitList("test") {
+	if ar.AddToWaitList("test") {
 		t.Fatal("dup")
 	}
 
-	if !ar.addToWaitList("test2") {
+	if !ar.AddToWaitList("test2") {
 		t.Fatal("dup")
 	}
-	if !ar.ack("test") {
+	if !ar.Ack("test") {
 		t.Fatal("dup")
 	}
-	if ar.ack("test") {
+	if ar.Ack("test") {
 		t.Fatal("dup")
 	}
-	if ar.hasCompleted() {
+	if ar.HasCompleted() {
 		t.Fatal("completed")
 	}
 
-	if !ar.ack("test2") {
+	if !ar.Ack("test2") {
 		t.Fatal("dup")
 	}
-	if !ar.hasCompleted() {
+	if !ar.HasCompleted() {
 		t.Fatal("completed")
 	}
 }

@@ -7,7 +7,7 @@ import (
 // MockedPlugin is mocked Plugin struct
 type MockedPlugin struct {
 	NewVertexMock        func(id VertexID) Vertex
-	ListVertexIDMock     func(partitionId uint64) ([]VertexID, error)
+	PartitionMock        func(id VertexID, numOfPartitions uint64) (uint64, error)
 	MarshalMessageMock   func(msg Message) (*any.Any, error)
 	UnmarshalMessageMock func(a *any.Any) (Message, error)
 	GetCombinerMock      func() func(VertexID, []Message) ([]Message, error)
@@ -17,8 +17,8 @@ func (m *MockedPlugin) NewVertex(id VertexID) Vertex {
 	return m.NewVertexMock(id)
 }
 
-func (m *MockedPlugin) ListVertexID(partitionID uint64) ([]VertexID, error) {
-	return m.ListVertexIDMock(partitionID)
+func (m *MockedPlugin) Partition(id VertexID, numOfPartitions uint64) (uint64, error) {
+	return m.PartitionMock(id, numOfPartitions)
 }
 
 func (m *MockedPlugin) MarshalMessage(msg Message) (*any.Any, error) {
