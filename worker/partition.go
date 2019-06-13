@@ -51,7 +51,7 @@ func (state *partitionActor) waitInit(context actor.Context) {
 		state.partitionID = cmd.PartitionId
 		state.ActorUtil.AppendLoggerField("partitionId", cmd.PartitionId)
 
-		context.Send(context.Parent(), &command.InitPartitionAck{
+		context.Respond(&command.InitPartitionAck{
 			PartitionId: state.partitionID,
 		})
 		state.resetAckRecorder()
@@ -60,7 +60,7 @@ func (state *partitionActor) waitInit(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled partition command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled partition command: command=%#v", cmd))
 		return
 	}
 }
@@ -74,7 +74,7 @@ func (state *partitionActor) idle(context actor.Context) {
 		}
 		pid := context.Spawn(state.vertexProps)
 		state.vertices[vid] = pid
-		context.Send(pid, cmd)
+		context.Request(pid, cmd)
 		return
 
 	case *command.LoadVertexAck:
@@ -91,7 +91,7 @@ func (state *partitionActor) idle(context actor.Context) {
 		state.behavior.Become(state.waitSuperStepBarrierAck)
 		return
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled partition command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled partition command: command=%#v", cmd))
 		return
 	}
 }
@@ -112,7 +112,7 @@ func (state *partitionActor) waitSuperStepBarrierAck(context actor.Context) {
 		}
 		return
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitSpuerStepBarrierAck] unhandled partition command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[waitSpuerStepBarrierAck] unhandled partition command: command=%#v", cmd))
 		return
 	}
 }
@@ -145,20 +145,20 @@ func (state *partitionActor) superstep(context actor.Context) {
 		} else if pid, ok := state.vertices[VertexID(cmd.DestVertexId)]; ok {
 			context.Forward(pid)
 		} else {
-			state.ActorUtil.LogError(fmt.Sprintf("[superstep] unknown destination message: msg=%+v", cmd))
+			state.ActorUtil.LogError(fmt.Sprintf("[superstep] unknown destination message: msg=%#v", cmd))
 		}
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled partition command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled partition command: command=%#v", cmd))
 		return
 	}
 }
 
 func (state *partitionActor) broadcastToVertices(context actor.Context, msg interface{}) {
-	state.LogDebug(fmt.Sprintf("broadcast %+v", msg))
+	state.LogDebug(fmt.Sprintf("broadcast %#v", msg))
 	for _, pid := range state.vertices {
-		context.Send(pid, msg)
+		context.Request(pid, msg)
 	}
 }
 

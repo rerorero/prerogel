@@ -79,7 +79,7 @@ func (state *workerActor) waitInit(context actor.Context) {
 
 			pid := context.Spawn(state.partitionProps)
 			state.partitions[partition] = pid
-			context.Send(pid, &command.InitPartition{
+			context.Request(pid, &command.InitPartition{
 				PartitionId: partition,
 			})
 		}
@@ -89,7 +89,7 @@ func (state *workerActor) waitInit(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled worker command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled worker command: command=%#v", cmd))
 		return
 	}
 }
@@ -110,7 +110,7 @@ func (state *workerActor) waitPartitionInitAck(context actor.Context) {
 		}
 		return
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitPartitionInitÅck] unhandled worker command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[waitPartitionInitÅck] unhandled worker command: command=%#v", cmd))
 		return
 	}
 }
@@ -122,7 +122,7 @@ func (state *workerActor) idle(context actor.Context) {
 		state.broadcastToPartitions(context, cmd)
 		state.resetAckRecorder()
 		state.combinedMessagesAck.Clear()
-		state.behavior.Become(state.superstep)
+		state.behavior.Become(state.waitSuperStepBarrierAck)
 		return
 
 	case *command.SuperStepMessage:
@@ -131,7 +131,7 @@ func (state *workerActor) idle(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled worker command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled worker command: command=%#v", cmd))
 		return
 	}
 }
@@ -152,7 +152,7 @@ func (state *workerActor) waitSuperStepBarrierAck(context actor.Context) {
 		}
 		return
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitSpuerStepBarrierAck] unhandled partition command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[waitSpuerStepBarrierAck] unhandled partition command: command=%#v", cmd))
 		return
 	}
 }
@@ -176,12 +176,12 @@ func (state *workerActor) superstep(context actor.Context) {
 				// TODO: it can reduce messages by aggregating by each destination worker
 				for dest, msgs := range state.ssMessageBuf.buf {
 					destWorker := state.findWorkerInfoByVertex(dest)
-					if destWorker == nil {
+					if destWorker == nil || destWorker.WorkerPid.GetId() == context.Self().GetId() {
 						state.ActorUtil.Fail(fmt.Errorf("failed to find worker: %v", dest))
 						return
 					}
 					for _, m := range msgs {
-						context.Send(destWorker.WorkerPid, m)
+						context.Request(destWorker.WorkerPid, m)
 					}
 				}
 				// wait for SuperStepMessageAck from other workers
@@ -198,6 +198,7 @@ func (state *workerActor) superstep(context actor.Context) {
 
 	case *command.SuperStepMessageAck:
 		state.ssMessageBuf.remove(cmd)
+		println("natoring ack "+cmd.Uuid, state.ssMessageBuf.numOfMessage())
 		if state.ssMessageBuf.numOfMessage() == 0 {
 			state.computeAckAndBecomeIdle(context)
 		}
@@ -205,7 +206,7 @@ func (state *workerActor) superstep(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled worker command: command=%+v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled worker command: command=%#v", cmd))
 		return
 	}
 }
@@ -213,28 +214,47 @@ func (state *workerActor) superstep(context actor.Context) {
 func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *command.SuperStepMessage) {
 	srcWorker := state.findWorkerInfoByPartition(cmd.SrcPartitionId)
 	if srcWorker == nil {
-		state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%+v", cmd))
+		state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%#v", cmd))
 		return
 	}
 
 	if srcWorker.WorkerPid.GetId() == context.Self().GetId() {
-		// when sent from my partition, saves to buffer then responds Ack to vertex
-		state.ssMessageBuf.add(cmd)
-		if cmd.SrcVertexPid == nil {
-			state.ActorUtil.Fail(fmt.Errorf("received message having invalid SrcertexPid: command=%+v", cmd))
+		destPartition, err := state.plugin.Partition(VertexID(cmd.DestVertexId), state.numOfPartitions())
+		if err != nil {
+			state.ActorUtil.Fail(fmt.Errorf("failed to find partition for message: %#v", cmd))
 			return
 		}
-		context.Send(cmd.SrcVertexPid, &command.SuperStepMessageAck{
-			Uuid: cmd.Uuid,
-		})
+
+		destPid, ok := state.partitions[destPartition]
+		if ok {
+			// when sent from local partition to local partition, forward it
+			context.Forward(destPid)
+
+		} else {
+			// when sent from local partition to other worker's partition, saves to buffer then responds Ack to vertex
+			state.ssMessageBuf.add(cmd)
+			if cmd.SrcVertexPid == nil {
+				state.ActorUtil.Fail(fmt.Errorf("received message having invalid SrcerVertexPid: command=%#v", cmd))
+				return
+			}
+			context.Send(cmd.SrcVertexPid, &command.SuperStepMessageAck{
+				Uuid: cmd.Uuid,
+			})
+		}
+
 	} else {
 		// when sent from other worker, route it to vertex
-		destWorker := state.findWorkerInfoByVertex(VertexID(cmd.DestVertexId))
-		if destWorker == nil {
-			state.ActorUtil.LogError(fmt.Sprintf("[superstep] destination worker is not found: command=%+v", cmd))
+		p, err := state.plugin.Partition(VertexID(cmd.DestVertexId), state.numOfPartitions())
+		if err != nil {
+			state.ActorUtil.Fail(errors.Wrap(err, "failed to Partition()"))
 			return
 		}
-		context.Send(destWorker.WorkerPid, cmd)
+		pid, ok := state.partitions[p]
+		if !ok {
+			state.ActorUtil.Fail(fmt.Errorf("[superstep] destination partition(%v) is not found: command=%#v", p, cmd))
+			return
+		}
+		context.Forward(pid)
 	}
 	return
 }
@@ -257,9 +277,9 @@ func (state *workerActor) numOfPartitions() uint64 {
 }
 
 func (state *workerActor) broadcastToPartitions(context actor.Context, msg proto.Message) {
-	state.LogDebug(fmt.Sprintf("broadcast %+v", msg))
+	state.LogDebug(fmt.Sprintf("broadcast %#v", msg))
 	for _, pid := range state.partitions {
-		context.Send(pid, msg)
+		context.Request(pid, msg)
 	}
 }
 
@@ -354,7 +374,7 @@ func (buf *superStepMsgBuf) combine() error {
 		for _, ss := range ssMsgs {
 			m, err := buf.plugin.UnmarshalMessage(ss.Message)
 			if err != nil {
-				return errors.Wrapf(err, "failed to unmarshal message: %+v", ss)
+				return errors.Wrapf(err, "failed to unmarshal message: %#v", ss)
 			}
 			msgs = append(msgs, m)
 		}
@@ -368,7 +388,7 @@ func (buf *superStepMsgBuf) combine() error {
 		for _, c := range combined {
 			pb, err := buf.plugin.MarshalMessage(c)
 			if err != nil {
-				return errors.Wrapf(err, "failed to marshal combined message: %+v", c)
+				return errors.Wrapf(err, "failed to marshal combined message: %#v", c)
 			}
 			newMsgs = append(newMsgs, &command.SuperStepMessage{
 				Uuid:           uuid.New().String(),

@@ -32,7 +32,7 @@ func NewActorProxy(root actor.SpawnerContext, underlyingProps *actor.Props, cust
 			proxy.underlying = ctx.Spawn(underlyingProps)
 			init <- 1
 		case *forward:
-			ctx.Send(proxy.underlying, m.request)
+			ctx.Request(proxy.underlying, m.request)
 			if m.respond != nil && m.resExpected != nil {
 				proxy.current = m
 			}
@@ -48,11 +48,16 @@ func NewActorProxy(root actor.SpawnerContext, underlyingProps *actor.Props, cust
 	return proxy
 }
 
+// Underlying returns PID under the test
+func (proxy *ActorProxy) Underlying() *actor.PID {
+	return proxy.underlying
+}
+
 // SendAndAwait sends a request to underlying actor and wait for response
 func (proxy *ActorProxy) SendAndAwait(ctx actor.SenderContext, req proto.Message, resEmpty proto.Message, timeout time.Duration) (proto.Message, error) {
 	msg := &forward{req, resEmpty, make(chan proto.Message, 1)}
 	defer close(msg.respond)
-	ctx.Send(proxy.parent, msg)
+	ctx.Request(proxy.parent, msg)
 	select {
 	case res := <-msg.respond:
 		return res, nil
@@ -64,5 +69,5 @@ func (proxy *ActorProxy) SendAndAwait(ctx actor.SenderContext, req proto.Message
 // Send sends a request via proxy
 func (proxy *ActorProxy) Send(ctx actor.SenderContext, req proto.Message) {
 	msg := &forward{req, nil, nil}
-	ctx.Send(proxy.parent, msg)
+	ctx.Request(proxy.parent, msg)
 }

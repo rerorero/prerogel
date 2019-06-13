@@ -42,11 +42,11 @@ func (c *computeContextImpl) ReceivedMessages() []Message {
 func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 	pb, err := c.vertexActor.plugin.MarshalMessage(m)
 	if err != nil {
-		c.vertexActor.ActorUtil.LogError(fmt.Sprintf("failed to marshal message: id=%v, message=%+v", c.vertexActor.vertex.GetID(), m))
+		c.vertexActor.ActorUtil.LogError(fmt.Sprintf("failed to marshal message: id=%v, message=%#v", c.vertexActor.vertex.GetID(), m))
 		return err
 	}
 	messageID := uuid.New().String()
-	c.ctx.Send(c.ctx.Parent(), &command.SuperStepMessage{
+	c.ctx.Request(c.ctx.Parent(), &command.SuperStepMessage{
 		Uuid:           messageID,
 		SuperStep:      c.superStep,
 		SrcVertexId:    string(c.vertexActor.vertex.GetID()),
@@ -114,7 +114,7 @@ func (state *vertexActor) waitInit(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled vertex command: command=%+v(%v)", cmd, reflect.TypeOf(cmd)))
+		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled vertex command: command=%#v(%v)", cmd, reflect.TypeOf(cmd)))
 		return
 	}
 }
@@ -138,13 +138,13 @@ func (state *vertexActor) superstep(context actor.Context) {
 
 	case *command.SuperStepMessage:
 		if state.vertex.GetID() != VertexID(cmd.DestVertexId) {
-			state.ActorUtil.Fail(fmt.Errorf("inconsistent vertex id: %+v", *cmd))
+			state.ActorUtil.Fail(fmt.Errorf("inconsistent vertex id: %#v", *cmd))
 			return
 		}
 		// TODO: verify cmd.SuperStep
 		pb, err := state.plugin.UnmarshalMessage(cmd.Message)
 		if err != nil {
-			state.ActorUtil.Fail(fmt.Errorf("failed to unmarshal message: %+v", *cmd))
+			state.ActorUtil.Fail(fmt.Errorf("failed to unmarshal message: %#v", *cmd))
 			return
 		}
 		state.messageQueue = append(state.messageQueue, pb)
@@ -168,7 +168,7 @@ func (state *vertexActor) superstep(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled vertex command: command=%+v(%v)", cmd, reflect.TypeOf(cmd)))
+		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled vertex command: command=%#v", cmd))
 		return
 	}
 }

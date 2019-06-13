@@ -410,7 +410,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 					child = ctx.Spawn(props)
 				case *command.SuperStepMessage:
 					sentMessages = append(sentMessages, m)
-					ctx.Send(m.SrcVertexPid, &command.SuperStepMessageAck{
+					ctx.Respond(&command.SuperStepMessageAck{
 						Uuid: m.Uuid,
 					})
 				case proto.Message:

@@ -162,7 +162,7 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 			c.Send(c.Parent(), &command.SuperStepBarrierAck{VertexId: string(vid[i-1])})
 		case *command.Compute:
 			i := atomic.AddInt32(&called, 1)
-			c.Send(c.Parent(), &command.SuperStepMessage{
+			c.Request(c.Parent(), &command.SuperStepMessage{
 				Uuid:         fmt.Sprintf("uuid-%d", i),
 				SuperStep:    cmd.SuperStep,
 				SrcVertexId:  string(vid[i-1]),

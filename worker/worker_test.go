@@ -1,12 +1,21 @@
 package worker
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/rerorero/prerogel/util"
 	"github.com/rerorero/prerogel/worker/command"
+	"github.com/sirupsen/logrus/hooks/test"
 )
 
 func Test_superStepMsgBuf_add_remove(t *testing.T) {
@@ -196,4 +205,169 @@ func anyOf(s string) *any.Any {
 	return &any.Any{
 		Value: []byte(s),
 	}
+}
+
+func TestNewWorkerActor_routesMessages(t *testing.T) {
+	var called int32
+	messageAck := make(map[int]int)
+	messageAckMux := &sync.Mutex{}
+	logger, _ := test.NewNullLogger()
+
+	plugin := &MockedPlugin{
+		PartitionMock: func(vid VertexID, numOfPartitions uint64) (uint64, error) {
+			id := string(vid)
+			if numOfPartitions != 6 {
+				t.Fatal("unexpected numOfPartitions")
+			}
+			i, err := strconv.Atoi(id[len(id)-1:])
+			if err != nil {
+				t.Fatal(err)
+			}
+			return uint64(i), nil
+		},
+		MarshalMessageMock: func(msg Message) (*any.Any, error) {
+			return msg.(*any.Any), nil
+		},
+		UnmarshalMessageMock: func(a *any.Any) (Message, error) {
+			return a, nil
+		},
+		GetCombinerMock: func() func(VertexID, []Message) ([]Message, error) {
+			return func(id VertexID, messages []Message) ([]Message, error) {
+				return messages, nil
+			}
+		},
+	}
+
+	partitions := []uint64{1, 2, 3}
+
+	partitionProps := actor.PropsFromFunc(func(c actor.Context) {
+		switch cmd := c.Message().(type) {
+		case *command.InitPartition:
+			c.Send(c.Parent(), &command.InitPartitionAck{PartitionId: cmd.PartitionId})
+		case *command.SuperStepBarrier:
+			i := atomic.AddInt32(&called, 1)
+			c.Send(c.Parent(), &command.SuperStepBarrierPartitionAck{PartitionId: partitions[i-1]})
+		case *command.Compute:
+			i := atomic.AddInt32(&called, 1)
+			// internal message
+			c.Request(c.Parent(), &command.SuperStepMessage{
+				Uuid:           fmt.Sprintf("uuid-internal-%v", partitions[i-1]),
+				SuperStep:      cmd.SuperStep,
+				SrcVertexId:    "vertex-dummy",
+				SrcPartitionId: partitions[i-i],
+				SrcVertexPid:   c.Self(),
+				DestVertexId:   fmt.Sprintf("dest-internal-%v", partitions[i-1]),
+				Message:        anyOf("message-from-me"),
+			})
+			// external message
+			c.Request(c.Parent(), &command.SuperStepMessage{
+				Uuid:           fmt.Sprintf("uuid-external-%v", partitions[i-1]),
+				SuperStep:      cmd.SuperStep,
+				SrcVertexId:    "vertex-dummy",
+				SrcPartitionId: partitions[i-i],
+				SrcVertexPid:   c.Self(),
+				DestVertexId:   fmt.Sprintf("dest-external-%v", partitions[i-1]+3),
+				Message:        anyOf("message-from-me"),
+			})
+		case *command.SuperStepMessage:
+			c.Respond(&command.SuperStepMessageAck{
+				Uuid: cmd.Uuid,
+			})
+		case *command.SuperStepMessageAck:
+			id, err := strconv.Atoi(cmd.Uuid[len(cmd.Uuid)-1:])
+			if err != nil {
+				t.Fatal(err)
+			}
+			messageAckMux.Lock()
+			defer messageAckMux.Unlock()
+			switch {
+			case strings.Contains(cmd.Uuid, "uuid-internal-"):
+				messageAck[id] = messageAck[id] + 1
+			case strings.Contains(cmd.Uuid, "uuid-external-"):
+				messageAck[id] = messageAck[id] + 1
+			default:
+				t.Fatalf("unexpected ack: %#v", cmd)
+			}
+			if messageAck[id] == 2 {
+				c.Send(c.Parent(), &command.ComputePartitionAck{PartitionId: partitions[id-1]})
+			}
+		}
+	})
+
+	workerProps := actor.PropsFromProducer(func() actor.Actor {
+		return NewWorkerActor(plugin, partitionProps, logger)
+	})
+	context := actor.EmptyRootContext
+	computeAckCh := make(chan *command.ComputeWorkerAck)
+	proxy := util.NewActorProxy(context, workerProps, func(ctx actor.Context) {
+		switch cmd := ctx.Message().(type) {
+		case *command.ComputeWorkerAck:
+			computeAckCh <- cmd
+		}
+	})
+
+	extMessageAckCh := make(chan *command.SuperStepMessageAck)
+	defer close(extMessageAckCh)
+	otherWorkerMock := actor.PropsFromFunc(func(c actor.Context) {
+		switch cmd := c.Message().(type) {
+		case *command.SuperStepMessage:
+			c.Respond(&command.SuperStepMessageAck{
+				Uuid: cmd.Uuid,
+			})
+		case *command.SuperStepMessageAck:
+			extMessageAckCh <- cmd
+		case string:
+			// external message
+			c.Request(proxy.Underlying(), &command.SuperStepMessage{
+				Uuid:           "uuid-ext-worker",
+				SuperStep:      1,
+				SrcVertexId:    "src-" + cmd,
+				SrcPartitionId: 5,
+				SrcVertexPid:   c.Self(),
+				DestVertexId:   "dest-internal-2",
+				Message:        anyOf(cmd),
+			})
+		}
+	})
+	other1 := context.Spawn(otherWorkerMock)
+
+	// move state forward
+	called = 0
+	if _, err := proxy.SendAndAwait(context, &command.InitWorker{
+		ClusterInfo: &command.ClusterInfo{
+			WorkerInfo: []*command.WorkerInfo{
+				{
+					WorkerPid:  proxy.Underlying(),
+					Partitions: partitions,
+				},
+				{
+					WorkerPid:  other1,
+					Partitions: []uint64{4, 5, 6},
+				},
+			},
+		},
+	}, &command.InitWorkerAck{}, time.Second); err != nil {
+		t.Fatal(err)
+	}
+
+	// step 0
+	called = 0
+	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
+		t.Fatal(err)
+	}
+	called = 0
+	messageAck = make(map[int]int)
+	proxy.Send(context, &command.Compute{SuperStep: 0})
+	<-computeAckCh
+
+	// step 1
+	called = 0
+	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
+		t.Fatal(err)
+	}
+	called = 0
+	messageAck = make(map[int]int)
+	proxy.Send(context, &command.Compute{SuperStep: 1})
+	context.Send(other1, "ext-5")
+	<-computeAckCh
 }
