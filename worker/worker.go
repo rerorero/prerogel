@@ -198,7 +198,6 @@ func (state *workerActor) superstep(context actor.Context) {
 
 	case *command.SuperStepMessageAck:
 		state.ssMessageBuf.remove(cmd)
-		println("natoring ack "+cmd.Uuid, state.ssMessageBuf.numOfMessage())
 		if state.ssMessageBuf.numOfMessage() == 0 {
 			state.computeAckAndBecomeIdle(context)
 		}

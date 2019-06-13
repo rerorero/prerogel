@@ -298,7 +298,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 		return NewWorkerActor(plugin, partitionProps, logger)
 	})
 	context := actor.EmptyRootContext
-	computeAckCh := make(chan *command.ComputeWorkerAck)
+	computeAckCh := make(chan *command.ComputeWorkerAck, 1)
 	proxy := util.NewActorProxy(context, workerProps, func(ctx actor.Context) {
 		switch cmd := ctx.Message().(type) {
 		case *command.ComputeWorkerAck:
@@ -306,7 +306,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 		}
 	})
 
-	extMessageAckCh := make(chan *command.SuperStepMessageAck)
+	extMessageAckCh := make(chan *command.SuperStepMessageAck, 1)
 	defer close(extMessageAckCh)
 	otherWorkerMock := actor.PropsFromFunc(func(c actor.Context) {
 		switch cmd := c.Message().(type) {
@@ -369,5 +369,19 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	messageAck = make(map[int]int)
 	proxy.Send(context, &command.Compute{SuperStep: 1})
 	context.Send(other1, "ext-5")
+	<-computeAckCh
+	ack := <-extMessageAckCh
+	if ack.Uuid != "uuid-ext-worker" {
+		t.Fatal("unexpected ack")
+	}
+
+	// step 2
+	called = 0
+	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
+		t.Fatal(err)
+	}
+	called = 0
+	messageAck = make(map[int]int)
+	proxy.Send(context, &command.Compute{SuperStep: 2})
 	<-computeAckCh
 }
