@@ -8,23 +8,26 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/command"
+	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
-	"github.com/rerorero/prerogel/worker/command"
+	"github.com/rerorero/prerogel/worker/aggregator"
 	"github.com/sirupsen/logrus"
 )
 
 type vertexActor struct {
 	util.ActorUtil
 	behavior              actor.Behavior
-	plugin                Plugin
-	vertex                Vertex
+	plugin                plugin.Plugin
+	vertex                plugin.Vertex
 	partitionID           uint64
 	halted                bool
-	prevStepMessages      []Message
-	messageQueue          []Message
+	prevStepMessages      []plugin.Message
+	messageQueue          []plugin.Message
 	ackRecorder           *util.AckRecorder
 	computeRespondTo      *actor.PID
 	aggregatedCurrentStep map[string]*any.Any
+	statsMessageSent      uint64
 }
 
 type computeContextImpl struct {
@@ -38,11 +41,11 @@ func (c *computeContextImpl) SuperStep() uint64 {
 	return c.superStep
 }
 
-func (c *computeContextImpl) ReceivedMessages() []Message {
+func (c *computeContextImpl) ReceivedMessages() []plugin.Message {
 	return c.vertexActor.prevStepMessages
 }
 
-func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
+func (c *computeContextImpl) SendMessageTo(dest plugin.VertexID, m plugin.Message) error {
 	pb, err := c.vertexActor.plugin.MarshalMessage(m)
 	if err != nil {
 		c.vertexActor.ActorUtil.LogError(fmt.Sprintf("failed to marshal message: id=%v, message=%#v", c.vertexActor.vertex.GetID(), m))
@@ -69,7 +72,7 @@ func (c *computeContextImpl) VoteToHalt() {
 	c.vertexActor.halted = true
 }
 
-func (c *computeContextImpl) GetAggregated(aggregatorName string) (AggregatableValue, bool, error) {
+func (c *computeContextImpl) GetAggregated(aggregatorName string) (plugin.AggregatableValue, bool, error) {
 	aggregator, err := findAggregator(c.vertexActor.plugin.GetAggregators(), aggregatorName)
 	if err != nil {
 		return nil, false, err
@@ -86,7 +89,7 @@ func (c *computeContextImpl) GetAggregated(aggregatorName string) (AggregatableV
 	return nil, false, nil
 }
 
-func (c *computeContextImpl) PutAggregatable(aggregatorName string, v AggregatableValue) error {
+func (c *computeContextImpl) PutAggregatable(aggregatorName string, v plugin.AggregatableValue) error {
 	aggregator, err := findAggregator(c.vertexActor.plugin.GetAggregators(), aggregatorName)
 	if err != nil {
 		return err
@@ -116,7 +119,7 @@ func (c *computeContextImpl) PutAggregatable(aggregatorName string, v Aggregatab
 }
 
 // NewVertexActor returns an actor instance
-func NewVertexActor(plugin Plugin, logger *logrus.Logger) actor.Actor {
+func NewVertexActor(plugin plugin.Plugin, logger *logrus.Logger) actor.Actor {
 	ar := &util.AckRecorder{}
 	ar.Clear()
 	a := &vertexActor{
@@ -145,7 +148,7 @@ func (state *vertexActor) waitInit(context actor.Context) {
 			state.ActorUtil.Fail(errors.New("vertex has already initialized"))
 			return
 		}
-		state.vertex = state.plugin.NewVertex(VertexID(cmd.VertexId))
+		state.vertex = state.plugin.NewVertex(plugin.VertexID(cmd.VertexId))
 		if err := state.vertex.Load(); err != nil {
 			state.ActorUtil.Fail(errors.New("failed to load vertex"))
 			return
@@ -184,7 +187,7 @@ func (state *vertexActor) superstep(context actor.Context) {
 		return
 
 	case *command.SuperStepMessage:
-		if state.vertex.GetID() != VertexID(cmd.DestVertexId) {
+		if state.vertex.GetID() != plugin.VertexID(cmd.DestVertexId) {
 			state.ActorUtil.Fail(fmt.Errorf("inconsistent vertex id: %#v", *cmd))
 			return
 		}
@@ -221,6 +224,9 @@ func (state *vertexActor) superstep(context actor.Context) {
 }
 
 func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
+	state.aggregatedCurrentStep = make(map[string]*any.Any)
+	state.statsMessageSent = 0
+
 	// force to compute() in super step 0
 	// otherwise halt if there are no messages
 	if cmd.SuperStep == 0 {
@@ -246,8 +252,8 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 		state.ActorUtil.Fail(errors.Wrap(err, "failed to compute"))
 		return
 	}
+	state.statsMessageSent = uint64(state.ackRecorder.Size())
 
-	state.aggregatedCurrentStep = make(map[string]*any.Any)
 	if state.ackRecorder.HasCompleted() {
 		state.respondComputeAck(ctx)
 	}
@@ -255,6 +261,24 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 }
 
 func (state *vertexActor) respondComputeAck(ctx actor.Context) {
+	stats, err := findAggregator(state.plugin.GetAggregators(), aggregator.VertexStatsName)
+	if err == nil {
+		var active uint64
+		if !state.halted {
+			active = 1
+		}
+		pb, err := stats.MarshalValue(&aggregator.VertexStats{
+			ActiveVertices: active,
+			TotalVertices:  1,
+			MessagesSent:   state.statsMessageSent,
+		})
+		if err == nil {
+			state.ActorUtil.LogError(fmt.Sprintf("failed to marshal stats: %v", err))
+		} else {
+			state.aggregatedCurrentStep[aggregator.VertexStatsName] = pb
+		}
+	}
+
 	ctx.Send(state.computeRespondTo, &command.ComputeAck{
 		VertexId:         string(state.vertex.GetID()),
 		Halted:           state.halted,

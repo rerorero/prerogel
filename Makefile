@@ -37,5 +37,5 @@ plugin:
 	@$(GOCMD) get github.com/gogo/protobuf/gogoproto
 
 protogen:
-	@for d in $(PROTO_GEN_FILES); do cd `dirname $$d`; $(PROTOC) --proto_path=. --proto_path=$(GOPATH)/src ./*.proto; done
+	@for d in $(PROTO_GEN_FILES); do (cd `dirname $$d`; $(PROTOC) --proto_path=. --proto_path=$(GOPATH)/src ./*.proto); done
 

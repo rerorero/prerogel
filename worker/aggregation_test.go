@@ -5,11 +5,12 @@ import (
 
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
+	"github.com/rerorero/prerogel/plugin"
 )
 
 func Test_aggregateValueMap(t *testing.T) {
 	type args struct {
-		aggregators []Aggregator
+		aggregators []plugin.Aggregator
 		base        map[string]*any.Any
 		extra       map[string]*any.Any
 	}

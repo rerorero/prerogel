@@ -15,15 +15,16 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/rerorero/prerogel/command"
+	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
-	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus/hooks/test"
 )
 
 func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 	var loaded int
 	type fields struct {
-		vertex Vertex
+		vertex plugin.Vertex
 	}
 	tests := []struct {
 		name        string
@@ -40,7 +41,7 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 						loaded++
 						return nil
 					},
-					GetIDMock: func() VertexID {
+					GetIDMock: func() plugin.VertexID {
 						return "test-id"
 					},
 				},
@@ -67,7 +68,7 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 						loaded++
 						return nil
 					},
-					GetIDMock: func() VertexID {
+					GetIDMock: func() plugin.VertexID {
 						return "test-id"
 					},
 				},
@@ -95,7 +96,7 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 					LoadMock: func() error {
 						return errors.New("foo")
 					},
-					GetIDMock: func() VertexID {
+					GetIDMock: func() plugin.VertexID {
 						return "test-id"
 					},
 				},
@@ -120,7 +121,7 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			context := actor.EmptyRootContext
 			props := actor.PropsFromProducer(func() actor.Actor {
 				return NewVertexActor(&MockedPlugin{
-					NewVertexMock: func(id VertexID) Vertex {
+					NewVertexMock: func(id plugin.VertexID) plugin.Vertex {
 						if id != "test-id" {
 							t.Fatal("unexpected vertex id")
 						}
@@ -166,7 +167,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		vertex           Vertex
+		vertex           plugin.Vertex
 		cmd              []proto.Message
 		incomingMessages map[int][]*command.SuperStepMessage
 		wantRespond      []proto.Message
@@ -176,7 +177,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 		{
 			name: "compute 0 then halt",
 			vertex: &MockedVertex{
-				ComputeMock: func(ctx ComputeContext) error {
+				ComputeMock: func(ctx plugin.ComputeContext) error {
 					if ctx.SuperStep() != 0 {
 						t.Fatal("unexpected step")
 					}
@@ -189,7 +190,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				LoadMock: func() error {
 					return nil
 				},
-				GetIDMock: func() VertexID {
+				GetIDMock: func() plugin.VertexID {
 					return "test-id"
 				},
 			},
@@ -215,7 +216,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				&command.ComputeAck{
 					VertexId:         string("test-id"),
 					Halted:           true,
-					AggregatedValues: nil,
+					AggregatedValues: make(map[string]*any.Any),
 				},
 			},
 			wantComputed:     1,
@@ -224,12 +225,12 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 		{
 			name: "receive messages and continue to compute",
 			vertex: &MockedVertex{
-				ComputeMock: func(ctx ComputeContext) error {
+				ComputeMock: func(ctx plugin.ComputeContext) error {
 					if ctx.SuperStep() != uint64(computed) {
 						t.Fatalf("unexpected step: %v, %v", ctx.SuperStep(), computed)
 					}
 					if ctx.SuperStep() == 1 {
-						if diff := cmp.Diff([]Message{"test1", "test2"}, ctx.ReceivedMessages()); diff != "" {
+						if diff := cmp.Diff([]plugin.Message{"test1", "test2"}, ctx.ReceivedMessages()); diff != "" {
 							t.Fatalf("unexpected received messages: %s", diff)
 						}
 					} else if ctx.ReceivedMessages() != nil {
@@ -241,7 +242,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				LoadMock: func() error {
 					return nil
 				},
-				GetIDMock: func() VertexID { return "test-id" },
+				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
 				&command.LoadVertex{VertexId: "test-id", PartitionId: 123},
@@ -262,7 +263,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
 				&command.ComputeAck{VertexId: string("test-id"), Halted: false, AggregatedValues: make(map[string]*any.Any)},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
-				&command.ComputeAck{VertexId: string("test-id"), Halted: true, AggregatedValues: nil},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: true, AggregatedValues: make(map[string]*any.Any)},
 			},
 			wantComputed:     2,
 			wantSentMessages: nil,
@@ -270,12 +271,12 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 		{
 			name: "send messages to other vertices",
 			vertex: &MockedVertex{
-				ComputeMock: func(ctx ComputeContext) error {
+				ComputeMock: func(ctx plugin.ComputeContext) error {
 					msg := &types.Timestamp{
 						Seconds: 123456,
 						Nanos:   int32(ctx.SuperStep()),
 					}
-					if err := ctx.SendMessageTo(VertexID(fmt.Sprintf("dest-%v", ctx.SuperStep())), msg); err != nil {
+					if err := ctx.SendMessageTo(plugin.VertexID(fmt.Sprintf("dest-%v", ctx.SuperStep())), msg); err != nil {
 						t.Fatal(err)
 					}
 					computed++
@@ -284,7 +285,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				LoadMock: func() error {
 					return nil
 				},
-				GetIDMock: func() VertexID { return "test-id" },
+				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
 				&command.LoadVertex{VertexId: "test-id", PartitionId: 123},
@@ -305,7 +306,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
 				&command.ComputeAck{VertexId: string("test-id"), Halted: false, AggregatedValues: make(map[string]*any.Any)},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
-				&command.ComputeAck{VertexId: string("test-id"), Halted: true, AggregatedValues: nil},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: true, AggregatedValues: make(map[string]*any.Any)},
 			},
 			wantComputed: 2,
 			wantSentMessages: []*command.SuperStepMessage{
@@ -328,13 +329,13 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 		{
 			name: "fails when compute() fails",
 			vertex: &MockedVertex{
-				ComputeMock: func(ctx ComputeContext) error {
+				ComputeMock: func(ctx plugin.ComputeContext) error {
 					return errors.New("test")
 				},
 				LoadMock: func() error {
 					return nil
 				},
-				GetIDMock: func() VertexID { return "test-id" },
+				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
 				&command.LoadVertex{VertexId: "test-id", PartitionId: 123},
@@ -350,7 +351,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 		{
 			name: "fails when receives compute before initialized",
 			vertex: &MockedVertex{
-				GetIDMock: func() VertexID { return "test-id" },
+				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
 				&command.Compute{SuperStep: 0},
@@ -375,10 +376,10 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				case *actor.Started:
 					logger, _ := test.NewNullLogger()
 					plugin := &MockedPlugin{
-						NewVertexMock: func(id VertexID) Vertex {
+						NewVertexMock: func(id plugin.VertexID) plugin.Vertex {
 							return tt.vertex
 						},
-						UnmarshalMessageMock: func(a *any.Any) (Message, error) {
+						UnmarshalMessageMock: func(a *any.Any) (plugin.Message, error) {
 							switch a.TypeUrl {
 							case "com.example/test":
 								return string(a.Value), nil
@@ -392,7 +393,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 							t.Fatalf("unknown type url: %s", a.TypeUrl)
 							return nil, nil
 						},
-						MarshalMessageMock: func(msg Message) (i *any.Any, e error) {
+						MarshalMessageMock: func(msg plugin.Message) (i *any.Any, e error) {
 							switch m := msg.(type) {
 							case string:
 								return &any.Any{
@@ -404,6 +405,9 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 							}
 							t.Fatalf("unknown type: %+v", m)
 							return nil, nil
+						},
+						GetAggregatorsMock: func() []plugin.Aggregator {
+							return nil
 						},
 					}
 					props := actor.PropsFromProducer(func() actor.Actor {
@@ -476,18 +480,18 @@ func timestampToAny(t *testing.T, sec int64, nano int32) *any.Any {
 	}
 }
 
-var aggregators = []Aggregator{
+var aggregators = []plugin.Aggregator{
 	&MockedAggregator{
 		NameMock: func() string {
 			return "concat"
 		},
-		AggregateMock: func(v1 AggregatableValue, v2 AggregatableValue) AggregatableValue {
+		AggregateMock: func(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) plugin.AggregatableValue {
 			return v1.(string) + v2.(string)
 		},
-		MarshalValueMock: func(v AggregatableValue) (*any.Any, error) {
+		MarshalValueMock: func(v plugin.AggregatableValue) (*any.Any, error) {
 			return &any.Any{Value: []byte(v.(string))}, nil
 		},
-		UnmarshalValueMock: func(pb *any.Any) (AggregatableValue, error) {
+		UnmarshalValueMock: func(pb *any.Any) (plugin.AggregatableValue, error) {
 			return string(pb.Value), nil
 		},
 	},
@@ -495,13 +499,13 @@ var aggregators = []Aggregator{
 		NameMock: func() string {
 			return "sum"
 		},
-		AggregateMock: func(v1 AggregatableValue, v2 AggregatableValue) AggregatableValue {
+		AggregateMock: func(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) plugin.AggregatableValue {
 			return v1.(uint8) + v2.(uint8)
 		},
-		MarshalValueMock: func(v AggregatableValue) (*any.Any, error) {
+		MarshalValueMock: func(v plugin.AggregatableValue) (*any.Any, error) {
 			return &any.Any{Value: []byte{v.(uint8)}}, nil
 		},
-		UnmarshalValueMock: func(pb *any.Any) (AggregatableValue, error) {
+		UnmarshalValueMock: func(pb *any.Any) (plugin.AggregatableValue, error) {
 			return uint8(pb.Value[0]), nil
 		},
 	},
@@ -512,7 +516,7 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 
 	type fields struct {
 		aggregatedPrevStep map[string]*any.Any
-		plugin             Plugin
+		plugin             plugin.Plugin
 	}
 	type args struct {
 		aggregatorName string
@@ -521,7 +525,7 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    AggregatableValue
+		want    plugin.AggregatableValue
 		want1   bool
 		wantErr bool
 	}{
@@ -532,7 +536,7 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 					"concat": &any.Any{Value: []byte("AA")},
 				},
 				plugin: &MockedPlugin{
-					GetAggregatorsMock: func() []Aggregator {
+					GetAggregatorsMock: func() []plugin.Aggregator {
 						return aggregators
 					},
 				},
@@ -551,7 +555,7 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 					"concat": &any.Any{Value: []byte("AA")},
 				},
 				plugin: &MockedPlugin{
-					GetAggregatorsMock: func() []Aggregator {
+					GetAggregatorsMock: func() []plugin.Aggregator {
 						return aggregators
 					},
 				},
@@ -570,7 +574,7 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 					"concat": &any.Any{Value: []byte("AA")},
 				},
 				plugin: &MockedPlugin{
-					GetAggregatorsMock: func() []Aggregator {
+					GetAggregatorsMock: func() []plugin.Aggregator {
 						return aggregators
 					},
 				},
@@ -613,11 +617,11 @@ func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 	logger, _ := test.NewNullLogger()
 	type fields struct {
 		aggregatedCurrentStep map[string]*any.Any
-		plugin                Plugin
+		plugin                plugin.Plugin
 	}
 	type args struct {
 		aggregatorName string
-		v              AggregatableValue
+		v              plugin.AggregatableValue
 	}
 	tests := []struct {
 		name       string
@@ -631,7 +635,7 @@ func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 			fields: fields{
 				aggregatedCurrentStep: make(map[string]*any.Any),
 				plugin: &MockedPlugin{
-					GetAggregatorsMock: func() []Aggregator {
+					GetAggregatorsMock: func() []plugin.Aggregator {
 						return aggregators
 					},
 				},
@@ -653,7 +657,7 @@ func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 					"sum":    &any.Any{Value: []byte{uint8(10)}},
 				},
 				plugin: &MockedPlugin{
-					GetAggregatorsMock: func() []Aggregator {
+					GetAggregatorsMock: func() []plugin.Aggregator {
 						return aggregators
 					},
 				},
@@ -673,7 +677,7 @@ func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 			fields: fields{
 				aggregatedCurrentStep: make(map[string]*any.Any),
 				plugin: &MockedPlugin{
-					GetAggregatorsMock: func() []Aggregator {
+					GetAggregatorsMock: func() []plugin.Aggregator {
 						return aggregators
 					},
 				},

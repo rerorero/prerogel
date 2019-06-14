@@ -32,3 +32,8 @@ func (ar *AckRecorder) Ack(id string) bool {
 func (ar *AckRecorder) HasCompleted() bool {
 	return len(ar.m) == 0
 }
+
+// Size returns size
+func (ar *AckRecorder) Size() int {
+	return len(ar.m)
+}

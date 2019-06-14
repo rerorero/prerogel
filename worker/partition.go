@@ -5,8 +5,9 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/rerorero/prerogel/command"
+	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
-	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,24 +15,24 @@ type partitionActor struct {
 	util.ActorUtil
 	partitionID           uint64
 	behavior              actor.Behavior
-	plugin                Plugin
-	vertices              map[VertexID]*actor.PID
+	plugin                plugin.Plugin
+	vertices              map[plugin.VertexID]*actor.PID
 	vertexProps           *actor.Props
 	ackRecorder           *util.AckRecorder
 	aggregatedCurrentStep map[string]*any.Any
 }
 
 // NewPartitionActor returns an actor instance
-func NewPartitionActor(plugin Plugin, vertexProps *actor.Props, logger *logrus.Logger) actor.Actor {
+func NewPartitionActor(plg plugin.Plugin, vertexProps *actor.Props, logger *logrus.Logger) actor.Actor {
 	ar := &util.AckRecorder{}
 	ar.Clear()
 	a := &partitionActor{
-		plugin: plugin,
+		plugin: plg,
 		ActorUtil: util.ActorUtil{
 			Logger: logger,
 		},
 		vertexProps: vertexProps,
-		vertices:    make(map[VertexID]*actor.PID),
+		vertices:    make(map[plugin.VertexID]*actor.PID),
 		ackRecorder: ar,
 	}
 	a.behavior.Become(a.waitInit)
@@ -70,7 +71,7 @@ func (state *partitionActor) waitInit(context actor.Context) {
 func (state *partitionActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.LoadVertex:
-		vid := VertexID(cmd.VertexId)
+		vid := plugin.VertexID(cmd.VertexId)
 		if _, ok := state.vertices[vid]; ok {
 			state.ActorUtil.LogError(fmt.Sprintf("vertex=%v has already created", cmd.VertexId))
 		}
@@ -152,9 +153,9 @@ func (state *partitionActor) superstep(context actor.Context) {
 		return
 
 	case *command.SuperStepMessage:
-		if _, ok := state.vertices[VertexID(cmd.SrcVertexId)]; ok {
+		if _, ok := state.vertices[plugin.VertexID(cmd.SrcVertexId)]; ok {
 			context.Forward(context.Parent())
-		} else if pid, ok := state.vertices[VertexID(cmd.DestVertexId)]; ok {
+		} else if pid, ok := state.vertices[plugin.VertexID(cmd.DestVertexId)]; ok {
 			context.Forward(pid)
 		} else {
 			state.ActorUtil.LogError(fmt.Sprintf("[superstep] unknown destination message: msg=%#v", cmd))

@@ -5,9 +5,10 @@ import (
 
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/plugin"
 )
 
-func aggregateValueMap(aggregators []Aggregator, base map[string]*any.Any, extra map[string]*any.Any) error {
+func aggregateValueMap(aggregators []plugin.Aggregator, base map[string]*any.Any, extra map[string]*any.Any) error {
 	// TODO: there is still room for improvement
 	for name, extraAny := range extra {
 		baseAny, ok := base[name]
@@ -42,7 +43,7 @@ func aggregateValueMap(aggregators []Aggregator, base map[string]*any.Any, extra
 	return nil
 }
 
-func findAggregator(aggregators []Aggregator, name string) (Aggregator, error) {
+func findAggregator(aggregators []plugin.Aggregator, name string) (plugin.Aggregator, error) {
 	for _, a := range aggregators {
 		if a.Name() == name {
 			return a, nil

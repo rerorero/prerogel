@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+message VertexStats {
+    uint64 active_vertices = 1;
+    uint64 total_vertices = 2;
+    uint64 messages_sent = 3;
+}

@@ -12,8 +12,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
+	"github.com/rerorero/prerogel/command"
+	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
-	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus/hooks/test"
 )
 
@@ -23,7 +24,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 	var barrierAckCount int32
 	var computeAckCount int32
 	type fields struct {
-		plugin      Plugin
+		plugin      plugin.Plugin
 		vertexProps *actor.Props
 	}
 	tests := []struct {
@@ -37,7 +38,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 			name: "transition from init to superstep",
 			fields: fields{
 				plugin: &MockedPlugin{
-					GetAggregatorsMock: func() []Aggregator {
+					GetAggregatorsMock: func() []plugin.Aggregator {
 						return nil
 					},
 				},
@@ -82,7 +83,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 			name: "superstep, compute, Ack",
 			fields: fields{
 				plugin: &MockedPlugin{
-					GetAggregatorsMock: func() []Aggregator {
+					GetAggregatorsMock: func() []plugin.Aggregator {
 						return nil
 					},
 				},
@@ -161,11 +162,11 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 
 func Test_partitionActor_Receive_superstep(t *testing.T) {
 	logger, _ := test.NewNullLogger()
-	vid := []VertexID{"test-1", "test-2", "test-3"}
+	vid := []plugin.VertexID{"test-1", "test-2", "test-3"}
 	var called int32
 	var messageAckCount int32
 	plugin := &MockedPlugin{
-		GetAggregatorsMock: func() []Aggregator {
+		GetAggregatorsMock: func() []plugin.Aggregator {
 			return nil
 		},
 	}

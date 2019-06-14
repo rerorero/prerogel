@@ -9,20 +9,21 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/command"
+	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
-	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus"
 )
 
 type superStepMsgBuf struct {
-	buf    map[VertexID][]*command.SuperStepMessage
-	plugin Plugin
+	buf    map[plugin.VertexID][]*command.SuperStepMessage
+	plugin plugin.Plugin
 }
 
 type workerActor struct {
 	util.ActorUtil
 	behavior              actor.Behavior
-	plugin                Plugin
+	plugin                plugin.Plugin
 	partitions            map[uint64]*actor.PID
 	partitionProps        *actor.Props
 	clusterInfo           *command.ClusterInfo
@@ -33,7 +34,7 @@ type workerActor struct {
 }
 
 // NewWorkerActor returns a new actor instance
-func NewWorkerActor(plugin Plugin, partitionProps *actor.Props, logger *logrus.Logger) actor.Actor {
+func NewWorkerActor(plugin plugin.Plugin, partitionProps *actor.Props, logger *logrus.Logger) actor.Actor {
 	ar := &util.AckRecorder{}
 	ar.Clear()
 	mar := &util.AckRecorder{}
@@ -220,14 +221,14 @@ func (state *workerActor) superstep(context actor.Context) {
 }
 
 func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *command.SuperStepMessage) {
-	srcWorker := state.findWorkerInfoByVertex(VertexID(cmd.SrcVertexId))
+	srcWorker := state.findWorkerInfoByVertex(plugin.VertexID(cmd.SrcVertexId))
 	if srcWorker == nil {
 		state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%#v", cmd))
 		return
 	}
 
 	if srcWorker.WorkerPid.GetId() == context.Self().GetId() {
-		destPartition, err := state.plugin.Partition(VertexID(cmd.DestVertexId), state.numOfPartitions())
+		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.DestVertexId), state.numOfPartitions())
 		if err != nil {
 			state.ActorUtil.Fail(fmt.Errorf("failed to find partition for message: %#v", cmd))
 			return
@@ -248,7 +249,7 @@ func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *com
 
 	} else {
 		// when sent from other worker, route it to vertex
-		p, err := state.plugin.Partition(VertexID(cmd.DestVertexId), state.numOfPartitions())
+		p, err := state.plugin.Partition(plugin.VertexID(cmd.DestVertexId), state.numOfPartitions())
 		if err != nil {
 			state.ActorUtil.Fail(errors.Wrap(err, "failed to Partition()"))
 			return
@@ -294,7 +295,7 @@ func (state *workerActor) resetAckRecorder() {
 	}
 }
 
-func (state *workerActor) findWorkerInfoByVertex(vid VertexID) *command.WorkerInfo {
+func (state *workerActor) findWorkerInfoByVertex(vid plugin.VertexID) *command.WorkerInfo {
 	p, err := state.plugin.Partition(vid, state.numOfPartitions())
 	if err != nil {
 		state.ActorUtil.LogError(fmt.Sprintf("failed to Partition(): %v", err))
@@ -326,15 +327,15 @@ func (state *workerActor) computeAckAndBecomeIdle(context actor.Context) {
 }
 
 // newSuperStepMsgBuf creates a new super step message buffer instance
-func newSuperStepMsgBuf(plugin Plugin) *superStepMsgBuf {
+func newSuperStepMsgBuf(plg plugin.Plugin) *superStepMsgBuf {
 	return &superStepMsgBuf{
-		buf:    make(map[VertexID][]*command.SuperStepMessage),
-		plugin: plugin,
+		buf:    make(map[plugin.VertexID][]*command.SuperStepMessage),
+		plugin: plg,
 	}
 }
 
 func (buf *superStepMsgBuf) clear() {
-	buf.buf = make(map[VertexID][]*command.SuperStepMessage)
+	buf.buf = make(map[plugin.VertexID][]*command.SuperStepMessage)
 }
 
 func (buf *superStepMsgBuf) numOfMessage() int {
@@ -346,7 +347,7 @@ func (buf *superStepMsgBuf) numOfMessage() int {
 }
 
 func (buf *superStepMsgBuf) add(m *command.SuperStepMessage) {
-	buf.buf[VertexID(m.DestVertexId)] = append(buf.buf[VertexID(m.DestVertexId)], m)
+	buf.buf[plugin.VertexID(m.DestVertexId)] = append(buf.buf[plugin.VertexID(m.DestVertexId)], m)
 }
 
 func (buf *superStepMsgBuf) remove(ack *command.SuperStepMessageAck) {
@@ -376,7 +377,7 @@ func (buf *superStepMsgBuf) combine() error {
 			continue
 		}
 
-		var msgs []Message
+		var msgs []plugin.Message
 		for _, ss := range ssMsgs {
 			m, err := buf.plugin.UnmarshalMessage(ss.Message)
 			if err != nil {

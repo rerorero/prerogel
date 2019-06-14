@@ -14,8 +14,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/command"
+	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
-	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus/hooks/test"
 )
 
@@ -46,9 +47,9 @@ func Test_superStepMsgBuf_add_remove(t *testing.T) {
 	buf.add(m1)
 	buf.add(m2)
 	buf.add(m3)
-	expected := map[VertexID][]*command.SuperStepMessage{
-		VertexID("d1"): {m1, m2},
-		VertexID("d2"): {m3},
+	expected := map[plugin.VertexID][]*command.SuperStepMessage{
+		plugin.VertexID("d1"): {m1, m2},
+		plugin.VertexID("d2"): {m3},
 	}
 	if diff := cmp.Diff(expected, buf.buf); diff != "" {
 		t.Fatalf("not match: %s", diff)
@@ -61,9 +62,9 @@ func Test_superStepMsgBuf_add_remove(t *testing.T) {
 	buf.remove(&command.SuperStepMessageAck{
 		Uuid: "uuid2",
 	})
-	expected = map[VertexID][]*command.SuperStepMessage{
-		VertexID("d1"): {m1},
-		VertexID("d2"): {m3},
+	expected = map[plugin.VertexID][]*command.SuperStepMessage{
+		plugin.VertexID("d1"): {m1},
+		plugin.VertexID("d2"): {m3},
 	}
 	if diff := cmp.Diff(expected, buf.buf); diff != "" {
 		t.Fatalf("not match: %s", diff)
@@ -76,8 +77,8 @@ func Test_superStepMsgBuf_add_remove(t *testing.T) {
 	buf.remove(&command.SuperStepMessageAck{
 		Uuid: "uuid1",
 	})
-	expected = map[VertexID][]*command.SuperStepMessage{
-		VertexID("d2"): {m3},
+	expected = map[plugin.VertexID][]*command.SuperStepMessage{
+		plugin.VertexID("d2"): {m3},
 	}
 	if diff := cmp.Diff(expected, buf.buf); diff != "" {
 		t.Fatalf("not match: %s", diff)
@@ -88,7 +89,7 @@ func Test_superStepMsgBuf_add_remove(t *testing.T) {
 
 	// Clear
 	buf.clear()
-	expected = map[VertexID][]*command.SuperStepMessage{}
+	expected = map[plugin.VertexID][]*command.SuperStepMessage{}
 	if diff := cmp.Diff(expected, buf.buf); diff != "" {
 		t.Fatalf("not match: %s", diff)
 	}
@@ -99,14 +100,14 @@ func Test_superStepMsgBuf_add_remove(t *testing.T) {
 
 func Test_superStepMsgBuf_combine(t *testing.T) {
 	buf := newSuperStepMsgBuf(&MockedPlugin{
-		MarshalMessageMock: func(msg Message) (*any.Any, error) {
+		MarshalMessageMock: func(msg plugin.Message) (*any.Any, error) {
 			return anyOf(msg.(string)), nil
 		},
-		UnmarshalMessageMock: func(a *any.Any) (Message, error) {
+		UnmarshalMessageMock: func(a *any.Any) (plugin.Message, error) {
 			return string(a.Value), nil
 		},
-		GetCombinerMock: func() func(VertexID, []Message) ([]Message, error) {
-			return func(id VertexID, msgs []Message) ([]Message, error) {
+		GetCombinerMock: func() func(plugin.VertexID, []plugin.Message) ([]plugin.Message, error) {
+			return func(id plugin.VertexID, msgs []plugin.Message) ([]plugin.Message, error) {
 				// choose longest string
 				longest := msgs[0].(string)
 				for _, m := range msgs {
@@ -114,7 +115,7 @@ func Test_superStepMsgBuf_combine(t *testing.T) {
 						longest = m.(string)
 					}
 				}
-				return []Message{longest}, nil
+				return []plugin.Message{longest}, nil
 			}
 		},
 	})
@@ -166,20 +167,20 @@ func Test_superStepMsgBuf_combine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := map[VertexID][]*command.SuperStepMessage{
-		VertexID("d1"): {&command.SuperStepMessage{
+	expected := map[plugin.VertexID][]*command.SuperStepMessage{
+		plugin.VertexID("d1"): {&command.SuperStepMessage{
 			Uuid:         "",
 			SrcVertexId:  "",
 			DestVertexId: "d1",
 			Message:      anyOf("m2_looooooooooooooooong"),
 		}},
-		VertexID("d2"): {&command.SuperStepMessage{
+		plugin.VertexID("d2"): {&command.SuperStepMessage{
 			Uuid:         "",
 			SrcVertexId:  "",
 			DestVertexId: "d2",
 			Message:      anyOf("m4_long"),
 		}},
-		VertexID("d3"): {m6},
+		plugin.VertexID("d3"): {m6},
 	}
 
 	ignoreFields := cmpopts.IgnoreFields(command.SuperStepMessage{}, "Uuid")
@@ -204,7 +205,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	logger, _ := test.NewNullLogger()
 
 	plugin := &MockedPlugin{
-		PartitionMock: func(vid VertexID, numOfPartitions uint64) (uint64, error) {
+		PartitionMock: func(vid plugin.VertexID, numOfPartitions uint64) (uint64, error) {
 			id := string(vid)
 			if numOfPartitions != 6 {
 				return 0, errors.New("plugin failure: unexpected numOfPartitions")
@@ -216,14 +217,14 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 			}
 			return uint64(i), nil
 		},
-		MarshalMessageMock: func(msg Message) (*any.Any, error) {
+		MarshalMessageMock: func(msg plugin.Message) (*any.Any, error) {
 			return msg.(*any.Any), nil
 		},
-		UnmarshalMessageMock: func(a *any.Any) (Message, error) {
+		UnmarshalMessageMock: func(a *any.Any) (plugin.Message, error) {
 			return a, nil
 		},
-		GetCombinerMock: func() func(VertexID, []Message) ([]Message, error) {
-			return func(id VertexID, messages []Message) ([]Message, error) {
+		GetCombinerMock: func() func(plugin.VertexID, []plugin.Message) ([]plugin.Message, error) {
+			return func(id plugin.VertexID, messages []plugin.Message) ([]plugin.Message, error) {
 				return messages, nil
 			}
 		},

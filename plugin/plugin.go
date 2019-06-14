@@ -1,4 +1,4 @@
-package worker
+package plugin
 
 import (
 	"github.com/golang/protobuf/ptypes/any"
