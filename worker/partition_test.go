@@ -166,7 +166,6 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 				Uuid:         fmt.Sprintf("uuid-%d", i),
 				SuperStep:    cmd.SuperStep,
 				SrcVertexId:  string(vid[i-1]),
-				SrcVertexPid: c.Self(),
 				DestVertexId: "dummy",
 				Message:      nil,
 			})
@@ -188,7 +187,7 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 		switch cmd := ctx.Message().(type) {
 		case *command.SuperStepMessage:
 			atomic.AddInt32(&receivedMessage, 1)
-			ctx.Send(cmd.SrcVertexPid, &command.SuperStepMessageAck{Uuid: cmd.Uuid})
+			ctx.Respond(&command.SuperStepMessageAck{Uuid: cmd.Uuid})
 		case *command.ComputePartitionAck:
 			computeAckCh <- cmd
 		}

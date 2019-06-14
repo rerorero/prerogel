@@ -50,7 +50,6 @@ func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 		Uuid:         messageID,
 		SuperStep:    c.superStep,
 		SrcVertexId:  string(c.vertexActor.vertex.GetID()),
-		SrcVertexPid: c.ctx.Self(),
 		DestVertexId: string(dest),
 		Message:      pb,
 	})

@@ -211,9 +211,7 @@ func (state *workerActor) superstep(context actor.Context) {
 }
 
 func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *command.SuperStepMessage) {
-	println("natoring recv msg", cmd.SrcVertexId)
 	srcWorker := state.findWorkerInfoByVertex(VertexID(cmd.SrcVertexId))
-	println("natoring recv msg2", srcWorker)
 	if srcWorker == nil {
 		state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%#v", cmd))
 		return
@@ -234,11 +232,7 @@ func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *com
 		} else {
 			// when sent from local partition to other worker's partition, saves to buffer then responds Ack to vertex
 			state.ssMessageBuf.add(cmd)
-			if cmd.SrcVertexPid == nil {
-				state.ActorUtil.Fail(fmt.Errorf("received message having invalid SrcerVertexPid: command=%#v", cmd))
-				return
-			}
-			context.Send(cmd.SrcVertexPid, &command.SuperStepMessageAck{
+			context.Respond(&command.SuperStepMessageAck{
 				Uuid: cmd.Uuid,
 			})
 		}
@@ -395,7 +389,6 @@ func (buf *superStepMsgBuf) combine() error {
 				Uuid:         uuid.New().String(),
 				SuperStep:    ssMsgs[0].SuperStep,
 				SrcVertexId:  "",
-				SrcVertexPid: nil,
 				DestVertexId: string(dest),
 				Message:      pb,
 			})

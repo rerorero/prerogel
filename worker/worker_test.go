@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/util"
 	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus/hooks/test"
@@ -206,11 +207,12 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 		PartitionMock: func(vid VertexID, numOfPartitions uint64) (uint64, error) {
 			id := string(vid)
 			if numOfPartitions != 6 {
-				t.Fatal("unexpected numOfPartitions")
+				return 0, errors.New("plugin failure: unexpected numOfPartitions")
 			}
 			i, err := strconv.Atoi(id[len(id)-1:])
 			if err != nil {
 				t.Fatal(err)
+				return 0, errors.Wrap(err, "plugin failure: unexpected numOfPartitions")
 			}
 			return uint64(i), nil
 		},
@@ -237,14 +239,12 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 			i := atomic.AddInt32(&called, 1)
 			c.Send(c.Parent(), &command.SuperStepBarrierPartitionAck{PartitionId: partitions[i-1]})
 		case *command.Compute:
-			println("natoring mock compute", cmd.SuperStep)
 			i := atomic.AddInt32(&called, 1)
 			// internal message
 			c.Request(c.Parent(), &command.SuperStepMessage{
 				Uuid:         fmt.Sprintf("uuid-internal-%v", partitions[i-1]),
 				SuperStep:    cmd.SuperStep,
-				SrcVertexId:  "vertex-dummy",
-				SrcVertexPid: c.Self(),
+				SrcVertexId:  "vertex-dummy-1",
 				DestVertexId: fmt.Sprintf("dest-internal-%v", partitions[i-1]),
 				Message:      anyOf("message-from-me"),
 			})
@@ -252,8 +252,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 			c.Request(c.Parent(), &command.SuperStepMessage{
 				Uuid:         fmt.Sprintf("uuid-external-%v", partitions[i-1]),
 				SuperStep:    cmd.SuperStep,
-				SrcVertexId:  "vertex-dummy",
-				SrcVertexPid: c.Self(),
+				SrcVertexId:  "vertex-dummy-2",
 				DestVertexId: fmt.Sprintf("dest-external-%v", partitions[i-1]+3),
 				Message:      anyOf("message-from-me"),
 			})
@@ -310,7 +309,6 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 				Uuid:         "uuid-ext-worker",
 				SuperStep:    1,
 				SrcVertexId:  "src-" + cmd,
-				SrcVertexPid: c.Self(),
 				DestVertexId: "dest-internal-2",
 				Message:      anyOf(cmd),
 			})
@@ -345,9 +343,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	called = 0
 	messageAck = make(map[int]int)
 	proxy.Send(context, &command.Compute{SuperStep: 0})
-	println("nato")
 	<-computeAckCh
-	println("nato")
 
 	// step 1
 	called = 0

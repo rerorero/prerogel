@@ -447,7 +447,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 			if len(tt.wantSentMessages) != len(sentMessages) {
 				t.Fatalf("unexpected number of messages: %d", len(sentMessages))
 			}
-			ignoreFields := cmpopts.IgnoreFields(command.SuperStepMessage{}, "Uuid", "SrcVertexPid")
+			ignoreFields := cmpopts.IgnoreFields(command.SuperStepMessage{}, "Uuid")
 			for i := range tt.wantSentMessages {
 				if diff := cmp.Diff(*tt.wantSentMessages[i], *sentMessages[i], ignoreFields); diff != "" {
 					t.Errorf("unexpected messages: %s", diff)
