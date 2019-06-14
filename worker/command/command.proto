@@ -41,7 +41,6 @@ message SuperStepMessage {
     string uuid = 1;
     uint64 super_step = 2;
     string src_vertex_id = 3;
-    uint64 src_partition_id = 4;
     actor.PID src_vertex_pid = 5;
     string dest_vertex_id = 6;
     google.protobuf.Any message = 7;

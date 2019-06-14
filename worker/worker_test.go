@@ -23,25 +23,22 @@ func Test_superStepMsgBuf_add_remove(t *testing.T) {
 
 	// add
 	m1 := &command.SuperStepMessage{
-		Uuid:           "uuid1",
-		SrcVertexId:    "s1",
-		SrcPartitionId: 1,
-		DestVertexId:   "d1",
-		Message:        anyOf("m1"),
+		Uuid:         "uuid1",
+		SrcVertexId:  "s1",
+		DestVertexId: "d1",
+		Message:      anyOf("m1"),
 	}
 	m2 := &command.SuperStepMessage{
-		Uuid:           "uuid2",
-		SrcVertexId:    "s2",
-		SrcPartitionId: 1,
-		DestVertexId:   "d1",
-		Message:        anyOf("m2"),
+		Uuid:         "uuid2",
+		SrcVertexId:  "s2",
+		DestVertexId: "d1",
+		Message:      anyOf("m2"),
 	}
 	m3 := &command.SuperStepMessage{
-		Uuid:           "uuid3",
-		SrcVertexId:    "s3",
-		SrcPartitionId: 1,
-		DestVertexId:   "d2",
-		Message:        anyOf("m3"),
+		Uuid:         "uuid3",
+		SrcVertexId:  "s3",
+		DestVertexId: "d2",
+		Message:      anyOf("m3"),
 	}
 
 	// add
@@ -122,46 +119,40 @@ func Test_superStepMsgBuf_combine(t *testing.T) {
 	})
 
 	m1 := &command.SuperStepMessage{
-		Uuid:           "uuid1",
-		SrcVertexId:    "s1",
-		SrcPartitionId: 1,
-		DestVertexId:   "d1",
-		Message:        anyOf("m1"),
+		Uuid:         "uuid1",
+		SrcVertexId:  "s1",
+		DestVertexId: "d1",
+		Message:      anyOf("m1"),
 	}
 	m2 := &command.SuperStepMessage{
-		Uuid:           "uuid2",
-		SrcVertexId:    "s2",
-		SrcPartitionId: 1,
-		DestVertexId:   "d1",
-		Message:        anyOf("m2_middle"),
+		Uuid:         "uuid2",
+		SrcVertexId:  "s2",
+		DestVertexId: "d1",
+		Message:      anyOf("m2_middle"),
 	}
 	m3 := &command.SuperStepMessage{
-		Uuid:           "uuid3",
-		SrcVertexId:    "s2",
-		SrcPartitionId: 1,
-		DestVertexId:   "d1",
-		Message:        anyOf("m2_looooooooooooooooong"),
+		Uuid:         "uuid3",
+		SrcVertexId:  "s2",
+		DestVertexId: "d1",
+		Message:      anyOf("m2_looooooooooooooooong"),
 	}
 	m4 := &command.SuperStepMessage{
-		Uuid:           "uuid4",
-		SrcVertexId:    "s3",
-		SrcPartitionId: 1,
-		DestVertexId:   "d2",
-		Message:        anyOf("m4_long"),
+		Uuid:         "uuid4",
+		SrcVertexId:  "s3",
+		DestVertexId: "d2",
+		Message:      anyOf("m4_long"),
 	}
 	m5 := &command.SuperStepMessage{
-		Uuid:           "uuid5",
-		SrcVertexId:    "s3",
-		SrcPartitionId: 1,
-		DestVertexId:   "d2",
-		Message:        anyOf("m5"),
+		Uuid:         "uuid5",
+		SrcVertexId:  "s3",
+		DestVertexId: "d2",
+		Message:      anyOf("m5"),
 	}
 	m6 := &command.SuperStepMessage{
-		Uuid:           "uuid6",
-		SrcVertexId:    "s1",
-		SrcPartitionId: 1,
-		DestVertexId:   "d3",
-		Message:        anyOf("m6"),
+		Uuid:         "uuid6",
+		SrcVertexId:  "s1",
+		DestVertexId: "d3",
+		Message:      anyOf("m6"),
 	}
 
 	buf.add(m1)
@@ -176,18 +167,16 @@ func Test_superStepMsgBuf_combine(t *testing.T) {
 
 	expected := map[VertexID][]*command.SuperStepMessage{
 		VertexID("d1"): {&command.SuperStepMessage{
-			Uuid:           "",
-			SrcVertexId:    "",
-			SrcPartitionId: 1,
-			DestVertexId:   "d1",
-			Message:        anyOf("m2_looooooooooooooooong"),
+			Uuid:         "",
+			SrcVertexId:  "",
+			DestVertexId: "d1",
+			Message:      anyOf("m2_looooooooooooooooong"),
 		}},
 		VertexID("d2"): {&command.SuperStepMessage{
-			Uuid:           "",
-			SrcVertexId:    "",
-			SrcPartitionId: 1,
-			DestVertexId:   "d2",
-			Message:        anyOf("m4_long"),
+			Uuid:         "",
+			SrcVertexId:  "",
+			DestVertexId: "d2",
+			Message:      anyOf("m4_long"),
 		}},
 		VertexID("d3"): {m6},
 	}
@@ -248,26 +237,25 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 			i := atomic.AddInt32(&called, 1)
 			c.Send(c.Parent(), &command.SuperStepBarrierPartitionAck{PartitionId: partitions[i-1]})
 		case *command.Compute:
+			println("natoring mock compute", cmd.SuperStep)
 			i := atomic.AddInt32(&called, 1)
 			// internal message
 			c.Request(c.Parent(), &command.SuperStepMessage{
-				Uuid:           fmt.Sprintf("uuid-internal-%v", partitions[i-1]),
-				SuperStep:      cmd.SuperStep,
-				SrcVertexId:    "vertex-dummy",
-				SrcPartitionId: partitions[i-i],
-				SrcVertexPid:   c.Self(),
-				DestVertexId:   fmt.Sprintf("dest-internal-%v", partitions[i-1]),
-				Message:        anyOf("message-from-me"),
+				Uuid:         fmt.Sprintf("uuid-internal-%v", partitions[i-1]),
+				SuperStep:    cmd.SuperStep,
+				SrcVertexId:  "vertex-dummy",
+				SrcVertexPid: c.Self(),
+				DestVertexId: fmt.Sprintf("dest-internal-%v", partitions[i-1]),
+				Message:      anyOf("message-from-me"),
 			})
 			// external message
 			c.Request(c.Parent(), &command.SuperStepMessage{
-				Uuid:           fmt.Sprintf("uuid-external-%v", partitions[i-1]),
-				SuperStep:      cmd.SuperStep,
-				SrcVertexId:    "vertex-dummy",
-				SrcPartitionId: partitions[i-i],
-				SrcVertexPid:   c.Self(),
-				DestVertexId:   fmt.Sprintf("dest-external-%v", partitions[i-1]+3),
-				Message:        anyOf("message-from-me"),
+				Uuid:         fmt.Sprintf("uuid-external-%v", partitions[i-1]),
+				SuperStep:    cmd.SuperStep,
+				SrcVertexId:  "vertex-dummy",
+				SrcVertexPid: c.Self(),
+				DestVertexId: fmt.Sprintf("dest-external-%v", partitions[i-1]+3),
+				Message:      anyOf("message-from-me"),
 			})
 		case *command.SuperStepMessage:
 			c.Respond(&command.SuperStepMessageAck{
@@ -319,13 +307,12 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 		case string:
 			// external message
 			c.Request(proxy.Underlying(), &command.SuperStepMessage{
-				Uuid:           "uuid-ext-worker",
-				SuperStep:      1,
-				SrcVertexId:    "src-" + cmd,
-				SrcPartitionId: 5,
-				SrcVertexPid:   c.Self(),
-				DestVertexId:   "dest-internal-2",
-				Message:        anyOf(cmd),
+				Uuid:         "uuid-ext-worker",
+				SuperStep:    1,
+				SrcVertexId:  "src-" + cmd,
+				SrcVertexPid: c.Self(),
+				DestVertexId: "dest-internal-2",
+				Message:      anyOf(cmd),
 			})
 		}
 	})
@@ -358,7 +345,9 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	called = 0
 	messageAck = make(map[int]int)
 	proxy.Send(context, &command.Compute{SuperStep: 0})
+	println("nato")
 	<-computeAckCh
+	println("nato")
 
 	// step 1
 	called = 0

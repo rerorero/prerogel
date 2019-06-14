@@ -211,7 +211,9 @@ func (state *workerActor) superstep(context actor.Context) {
 }
 
 func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *command.SuperStepMessage) {
-	srcWorker := state.findWorkerInfoByPartition(cmd.SrcPartitionId)
+	println("natoring recv msg", cmd.SrcVertexId)
+	srcWorker := state.findWorkerInfoByVertex(VertexID(cmd.SrcVertexId))
+	println("natoring recv msg2", srcWorker)
 	if srcWorker == nil {
 		state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%#v", cmd))
 		return
@@ -390,13 +392,12 @@ func (buf *superStepMsgBuf) combine() error {
 				return errors.Wrapf(err, "failed to marshal combined message: %#v", c)
 			}
 			newMsgs = append(newMsgs, &command.SuperStepMessage{
-				Uuid:           uuid.New().String(),
-				SuperStep:      ssMsgs[0].SuperStep,
-				SrcVertexId:    "",
-				SrcPartitionId: ssMsgs[0].SrcPartitionId,
-				SrcVertexPid:   nil,
-				DestVertexId:   string(dest),
-				Message:        pb,
+				Uuid:         uuid.New().String(),
+				SuperStep:    ssMsgs[0].SuperStep,
+				SrcVertexId:  "",
+				SrcVertexPid: nil,
+				DestVertexId: string(dest),
+				Message:      pb,
 			})
 		}
 

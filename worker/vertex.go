@@ -47,13 +47,12 @@ func (c *computeContextImpl) SendMessageTo(dest VertexID, m Message) error {
 	}
 	messageID := uuid.New().String()
 	c.ctx.Request(c.ctx.Parent(), &command.SuperStepMessage{
-		Uuid:           messageID,
-		SuperStep:      c.superStep,
-		SrcVertexId:    string(c.vertexActor.vertex.GetID()),
-		SrcPartitionId: c.vertexActor.partitionID,
-		SrcVertexPid:   c.ctx.Self(),
-		DestVertexId:   string(dest),
-		Message:        pb,
+		Uuid:         messageID,
+		SuperStep:    c.superStep,
+		SrcVertexId:  string(c.vertexActor.vertex.GetID()),
+		SrcVertexPid: c.ctx.Self(),
+		DestVertexId: string(dest),
+		Message:      pb,
 	})
 
 	if !c.vertexActor.ackRecorder.AddToWaitList(messageID) {

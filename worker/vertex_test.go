@@ -306,20 +306,18 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 			wantComputed: 2,
 			wantSentMessages: []*command.SuperStepMessage{
 				{
-					Uuid:           "", // ignore
-					SuperStep:      0,
-					SrcVertexId:    "test-id",
-					SrcPartitionId: 123,
-					DestVertexId:   "dest-0",
-					Message:        timestampToAny(t, 123456, 0),
+					Uuid:         "", // ignore
+					SuperStep:    0,
+					SrcVertexId:  "test-id",
+					DestVertexId: "dest-0",
+					Message:      timestampToAny(t, 123456, 0),
 				},
 				{
-					Uuid:           "", // ignore
-					SuperStep:      1,
-					SrcVertexId:    "test-id",
-					SrcPartitionId: 123,
-					DestVertexId:   "dest-1",
-					Message:        timestampToAny(t, 123456, 1),
+					Uuid:         "", // ignore
+					SuperStep:    1,
+					SrcVertexId:  "test-id",
+					DestVertexId: "dest-1",
+					Message:      timestampToAny(t, 123456, 1),
 				},
 			},
 		},
