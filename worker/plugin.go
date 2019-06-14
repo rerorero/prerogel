@@ -16,6 +16,9 @@ type Message interface{}
 // VertexID is id of vertex
 type VertexID string
 
+// AggregatableValue is value to be aggregated by aggregator
+type AggregatableValue interface{}
+
 // Edge indicates an edge of graph
 type Edge struct {
 	Value  EdgeValue
@@ -28,6 +31,8 @@ type ComputeContext interface {
 	ReceivedMessages() []Message
 	SendMessageTo(dest VertexID, m Message) error
 	VoteToHalt()
+	GetAggregated(aggregatorName string) (AggregatableValue, bool, error)
+	PutAggregatable(aggregatorName string, v AggregatableValue) error
 }
 
 // Vertex is abstract of a vertex. thread safe.
@@ -40,6 +45,14 @@ type Vertex interface {
 	SetValue(v VertexValue) error
 }
 
+// Aggregator is Pregel aggregator implemented by user
+type Aggregator interface {
+	Name() string
+	Aggregate(v1 AggregatableValue, v2 AggregatableValue) AggregatableValue
+	MarshalValue(v AggregatableValue) (*any.Any, error)
+	UnmarshalValue(pb *any.Any) (AggregatableValue, error)
+}
+
 // Plugin is a plugin that provides graph computation.
 type Plugin interface {
 	NewVertex(id VertexID) Vertex
@@ -47,4 +60,5 @@ type Plugin interface {
 	MarshalMessage(msg Message) (*any.Any, error)
 	UnmarshalMessage(pb *any.Any) (Message, error)
 	GetCombiner() func(destination VertexID, messages []Message) ([]Message, error)
+	GetAggregators() []Aggregator
 }

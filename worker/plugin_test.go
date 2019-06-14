@@ -11,6 +11,7 @@ type MockedPlugin struct {
 	MarshalMessageMock   func(msg Message) (*any.Any, error)
 	UnmarshalMessageMock func(a *any.Any) (Message, error)
 	GetCombinerMock      func() func(VertexID, []Message) ([]Message, error)
+	GetAggregatorsMock   func() []Aggregator
 }
 
 func (m *MockedPlugin) NewVertex(id VertexID) Vertex {
@@ -31,6 +32,10 @@ func (m *MockedPlugin) UnmarshalMessage(a *any.Any) (Message, error) {
 
 func (m *MockedPlugin) GetCombiner() func(destination VertexID, messages []Message) ([]Message, error) {
 	return m.GetCombinerMock()
+}
+
+func (m *MockedPlugin) GetAggregators() []Aggregator {
+	return m.GetAggregatorsMock()
 }
 
 // MockedVertex is mocked Vertex struct
@@ -60,4 +65,29 @@ func (m *MockedVertex) GetValue() (VertexValue, error) {
 }
 func (m *MockedVertex) SetValue(v VertexValue) error {
 	return m.SetValueMock(v)
+}
+
+// MockedAggregator
+type MockedAggregator struct {
+	NameMock           func() string
+	AggregateMock      func(v1 AggregatableValue, v2 AggregatableValue) AggregatableValue
+	MarshalValueMock   func(v AggregatableValue) (*any.Any, error)
+	UnmarshalValueMock func(pb *any.Any) (AggregatableValue, error)
+}
+
+func (m *MockedAggregator) Name() string {
+	return m.NameMock()
+}
+
+func (m *MockedAggregator) Aggregate(v1 AggregatableValue, v2 AggregatableValue) AggregatableValue {
+	return m.AggregateMock(v1, v2)
+}
+
+func (m *MockedAggregator) MarshalValue(v AggregatableValue) (*any.Any, error) {
+	return m.MarshalValueMock(v)
+
+}
+
+func (m *MockedAggregator) UnmarshalValue(pb *any.Any) (AggregatableValue, error) {
+	return m.UnmarshalValueMock(pb)
 }

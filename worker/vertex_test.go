@@ -3,6 +3,7 @@ package worker
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/rerorero/prerogel/util"
 	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus/hooks/test"
 )
@@ -469,5 +471,258 @@ func timestampToAny(t *testing.T, sec int64, nano int32) *any.Any {
 	return &any.Any{
 		TypeUrl: "com.github/rerorero/" + proto.MessageName(&ts),
 		Value:   b,
+	}
+}
+
+var aggregators = []Aggregator{
+	&MockedAggregator{
+		NameMock: func() string {
+			return "concat"
+		},
+		AggregateMock: func(v1 AggregatableValue, v2 AggregatableValue) AggregatableValue {
+			return v1.(string) + v2.(string)
+		},
+		MarshalValueMock: func(v AggregatableValue) (*any.Any, error) {
+			return &any.Any{Value: []byte(v.(string))}, nil
+		},
+		UnmarshalValueMock: func(pb *any.Any) (AggregatableValue, error) {
+			return string(pb.Value), nil
+		},
+	},
+	&MockedAggregator{
+		NameMock: func() string {
+			return "sum"
+		},
+		AggregateMock: func(v1 AggregatableValue, v2 AggregatableValue) AggregatableValue {
+			return v1.(uint8) + v2.(uint8)
+		},
+		MarshalValueMock: func(v AggregatableValue) (*any.Any, error) {
+			return &any.Any{Value: []byte{v.(uint8)}}, nil
+		},
+		UnmarshalValueMock: func(pb *any.Any) (AggregatableValue, error) {
+			return uint8(pb.Value[0]), nil
+		},
+	},
+}
+
+func Test_computeContextImpl_Aggregator(t *testing.T) {
+	logger, _ := test.NewNullLogger()
+
+	type fields struct {
+		aggregatedPrevStep []*command.AggregatedValue
+		plugin             Plugin
+	}
+	type args struct {
+		aggregatorName string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    AggregatableValue
+		want1   bool
+		wantErr bool
+	}{
+		{
+			name: "get value by name",
+			fields: fields{
+				aggregatedPrevStep: []*command.AggregatedValue{
+					{
+						AggregatorName: "concat",
+						Value:          &any.Any{Value: []byte("AA")},
+					},
+				},
+				plugin: &MockedPlugin{
+					GetAggregatorsMock: func() []Aggregator {
+						return aggregators
+					},
+				},
+			},
+			args: args{
+				aggregatorName: "concat",
+			},
+			want:    "AA",
+			want1:   true,
+			wantErr: false,
+		},
+		{
+			name: "get none value by name",
+			fields: fields{
+				aggregatedPrevStep: []*command.AggregatedValue{
+					{
+						AggregatorName: "concat",
+						Value:          &any.Any{Value: []byte("AA")},
+					},
+				},
+				plugin: &MockedPlugin{
+					GetAggregatorsMock: func() []Aggregator {
+						return aggregators
+					},
+				},
+			},
+			args: args{
+				aggregatorName: "sum",
+			},
+			want:    nil,
+			want1:   false,
+			wantErr: false,
+		},
+		{
+			name: "unknown aggregator",
+			fields: fields{
+				aggregatedPrevStep: []*command.AggregatedValue{
+					{
+						AggregatorName: "concat",
+						Value:          &any.Any{Value: []byte("AA")},
+					},
+				},
+				plugin: &MockedPlugin{
+					GetAggregatorsMock: func() []Aggregator {
+						return aggregators
+					},
+				},
+			},
+			args: args{
+				aggregatorName: "foo",
+			},
+			want:    nil,
+			want1:   false,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &computeContextImpl{
+				superStep: 0,
+				vertexActor: &vertexActor{
+					ActorUtil:             util.ActorUtil{Logger: logger},
+					plugin:                tt.fields.plugin,
+					aggregatedCurrentStep: nil,
+				},
+				aggregatedPrevStep: tt.fields.aggregatedPrevStep,
+			}
+			got, got1, err := c.GetAggregated(tt.args.aggregatorName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("computeContextImpl.GetAggregated() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("computeContextImpl.GetAggregated() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("computeContextImpl.GetAggregated() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func Test_computeContextImpl_PutAggregatable(t *testing.T) {
+	logger, _ := test.NewNullLogger()
+	type fields struct {
+		aggregatedCurrentStep []*command.AggregatedValue
+		plugin                Plugin
+	}
+	type args struct {
+		aggregatorName string
+		v              AggregatableValue
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		args       args
+		wantErr    bool
+		wantValues []*command.AggregatedValue
+	}{
+		{
+			name: "aggregate: append",
+			fields: fields{
+				aggregatedCurrentStep: nil,
+				plugin: &MockedPlugin{
+					GetAggregatorsMock: func() []Aggregator {
+						return aggregators
+					},
+				},
+			},
+			args: args{
+				aggregatorName: "concat",
+				v:              "AA",
+			},
+			wantErr: false,
+			wantValues: []*command.AggregatedValue{
+				{
+					AggregatorName: "concat",
+					Value:          &any.Any{Value: []byte("AA")},
+				},
+			},
+		},
+		{
+			name: "aggregate: reduce",
+			fields: fields{
+				aggregatedCurrentStep: []*command.AggregatedValue{
+					{
+						AggregatorName: "concat",
+						Value:          &any.Any{Value: []byte("AA")},
+					},
+					{
+						AggregatorName: "sum",
+						Value:          &any.Any{Value: []byte{uint8(10)}},
+					},
+				},
+				plugin: &MockedPlugin{
+					GetAggregatorsMock: func() []Aggregator {
+						return aggregators
+					},
+				},
+			},
+			args: args{
+				aggregatorName: "sum",
+				v:              uint8(3),
+			},
+			wantErr: false,
+			wantValues: []*command.AggregatedValue{
+				{
+					AggregatorName: "concat",
+					Value:          &any.Any{Value: []byte("AA")},
+				},
+				{
+					AggregatorName: "sum",
+					Value:          &any.Any{Value: []byte{uint8(13)}},
+				},
+			},
+		},
+		{
+			name: "unknown name",
+			fields: fields{
+				aggregatedCurrentStep: nil,
+				plugin: &MockedPlugin{
+					GetAggregatorsMock: func() []Aggregator {
+						return aggregators
+					},
+				},
+			},
+			args: args{
+				aggregatorName: "foooo",
+				v:              "AA",
+			},
+			wantErr:    true,
+			wantValues: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &computeContextImpl{
+				vertexActor: &vertexActor{
+					ActorUtil:             util.ActorUtil{Logger: logger},
+					plugin:                tt.fields.plugin,
+					aggregatedCurrentStep: tt.fields.aggregatedCurrentStep,
+				},
+			}
+			if err := c.PutAggregatable(tt.args.aggregatorName, tt.args.v); (err != nil) != tt.wantErr {
+				t.Errorf("computeContextImpl.PutAggregatable() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(c.vertexActor.aggregatedCurrentStep, tt.wantValues); diff != "" {
+				t.Errorf("values different: %s", diff)
+			}
+		})
 	}
 }
