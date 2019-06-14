@@ -208,12 +208,14 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 					VertexId: string("test-id"),
 				},
 				&command.ComputeAck{
-					VertexId: string("test-id"),
-					Halted:   false,
+					VertexId:         string("test-id"),
+					Halted:           false,
+					AggregatedValues: make(map[string]*any.Any),
 				},
 				&command.ComputeAck{
-					VertexId: string("test-id"),
-					Halted:   true,
+					VertexId:         string("test-id"),
+					Halted:           true,
+					AggregatedValues: nil,
 				},
 			},
 			wantComputed:     1,
@@ -256,11 +258,11 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 			wantRespond: []proto.Message{
 				&command.LoadVertexAck{VertexId: "test-id", PartitionId: 123},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
-				&command.ComputeAck{VertexId: string("test-id"), Halted: false},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: false, AggregatedValues: make(map[string]*any.Any)},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
-				&command.ComputeAck{VertexId: string("test-id"), Halted: false},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: false, AggregatedValues: make(map[string]*any.Any)},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
-				&command.ComputeAck{VertexId: string("test-id"), Halted: true},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: true, AggregatedValues: nil},
 			},
 			wantComputed:     2,
 			wantSentMessages: nil,
@@ -299,11 +301,11 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 			wantRespond: []proto.Message{
 				&command.LoadVertexAck{VertexId: "test-id", PartitionId: 123},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
-				&command.ComputeAck{VertexId: string("test-id"), Halted: false},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: false, AggregatedValues: make(map[string]*any.Any)},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
-				&command.ComputeAck{VertexId: string("test-id"), Halted: false},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: false, AggregatedValues: make(map[string]*any.Any)},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
-				&command.ComputeAck{VertexId: string("test-id"), Halted: true},
+				&command.ComputeAck{VertexId: string("test-id"), Halted: true, AggregatedValues: nil},
 			},
 			wantComputed: 2,
 			wantSentMessages: []*command.SuperStepMessage{
@@ -509,7 +511,7 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 	logger, _ := test.NewNullLogger()
 
 	type fields struct {
-		aggregatedPrevStep []*command.AggregatedValue
+		aggregatedPrevStep map[string]*any.Any
 		plugin             Plugin
 	}
 	type args struct {
@@ -526,11 +528,8 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 		{
 			name: "get value by name",
 			fields: fields{
-				aggregatedPrevStep: []*command.AggregatedValue{
-					{
-						AggregatorName: "concat",
-						Value:          &any.Any{Value: []byte("AA")},
-					},
+				aggregatedPrevStep: map[string]*any.Any{
+					"concat": &any.Any{Value: []byte("AA")},
 				},
 				plugin: &MockedPlugin{
 					GetAggregatorsMock: func() []Aggregator {
@@ -548,11 +547,8 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 		{
 			name: "get none value by name",
 			fields: fields{
-				aggregatedPrevStep: []*command.AggregatedValue{
-					{
-						AggregatorName: "concat",
-						Value:          &any.Any{Value: []byte("AA")},
-					},
+				aggregatedPrevStep: map[string]*any.Any{
+					"concat": &any.Any{Value: []byte("AA")},
 				},
 				plugin: &MockedPlugin{
 					GetAggregatorsMock: func() []Aggregator {
@@ -570,11 +566,8 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 		{
 			name: "unknown aggregator",
 			fields: fields{
-				aggregatedPrevStep: []*command.AggregatedValue{
-					{
-						AggregatorName: "concat",
-						Value:          &any.Any{Value: []byte("AA")},
-					},
+				aggregatedPrevStep: map[string]*any.Any{
+					"concat": &any.Any{Value: []byte("AA")},
 				},
 				plugin: &MockedPlugin{
 					GetAggregatorsMock: func() []Aggregator {
@@ -619,7 +612,7 @@ func Test_computeContextImpl_Aggregator(t *testing.T) {
 func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 	logger, _ := test.NewNullLogger()
 	type fields struct {
-		aggregatedCurrentStep []*command.AggregatedValue
+		aggregatedCurrentStep map[string]*any.Any
 		plugin                Plugin
 	}
 	type args struct {
@@ -631,12 +624,12 @@ func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 		fields     fields
 		args       args
 		wantErr    bool
-		wantValues []*command.AggregatedValue
+		wantValues map[string]*any.Any
 	}{
 		{
 			name: "aggregate: append",
 			fields: fields{
-				aggregatedCurrentStep: nil,
+				aggregatedCurrentStep: make(map[string]*any.Any),
 				plugin: &MockedPlugin{
 					GetAggregatorsMock: func() []Aggregator {
 						return aggregators
@@ -648,25 +641,16 @@ func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 				v:              "AA",
 			},
 			wantErr: false,
-			wantValues: []*command.AggregatedValue{
-				{
-					AggregatorName: "concat",
-					Value:          &any.Any{Value: []byte("AA")},
-				},
+			wantValues: map[string]*any.Any{
+				"concat": &any.Any{Value: []byte("AA")},
 			},
 		},
 		{
 			name: "aggregate: reduce",
 			fields: fields{
-				aggregatedCurrentStep: []*command.AggregatedValue{
-					{
-						AggregatorName: "concat",
-						Value:          &any.Any{Value: []byte("AA")},
-					},
-					{
-						AggregatorName: "sum",
-						Value:          &any.Any{Value: []byte{uint8(10)}},
-					},
+				aggregatedCurrentStep: map[string]*any.Any{
+					"concat": &any.Any{Value: []byte("AA")},
+					"sum":    &any.Any{Value: []byte{uint8(10)}},
 				},
 				plugin: &MockedPlugin{
 					GetAggregatorsMock: func() []Aggregator {
@@ -679,21 +663,15 @@ func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 				v:              uint8(3),
 			},
 			wantErr: false,
-			wantValues: []*command.AggregatedValue{
-				{
-					AggregatorName: "concat",
-					Value:          &any.Any{Value: []byte("AA")},
-				},
-				{
-					AggregatorName: "sum",
-					Value:          &any.Any{Value: []byte{uint8(13)}},
-				},
+			wantValues: map[string]*any.Any{
+				"concat": &any.Any{Value: []byte("AA")},
+				"sum":    &any.Any{Value: []byte{uint8(13)}},
 			},
 		},
 		{
 			name: "unknown name",
 			fields: fields{
-				aggregatedCurrentStep: nil,
+				aggregatedCurrentStep: make(map[string]*any.Any),
 				plugin: &MockedPlugin{
 					GetAggregatorsMock: func() []Aggregator {
 						return aggregators
@@ -705,7 +683,7 @@ func Test_computeContextImpl_PutAggregatable(t *testing.T) {
 				v:              "AA",
 			},
 			wantErr:    true,
-			wantValues: nil,
+			wantValues: make(map[string]*any.Any),
 		},
 	}
 	for _, tt := range tests {

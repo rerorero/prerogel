@@ -6,6 +6,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/util"
@@ -20,14 +21,15 @@ type superStepMsgBuf struct {
 
 type workerActor struct {
 	util.ActorUtil
-	behavior            actor.Behavior
-	plugin              Plugin
-	partitions          map[uint64]*actor.PID
-	partitionProps      *actor.Props
-	clusterInfo         *command.ClusterInfo
-	ackRecorder         *util.AckRecorder
-	combinedMessagesAck *util.AckRecorder
-	ssMessageBuf        *superStepMsgBuf
+	behavior              actor.Behavior
+	plugin                Plugin
+	partitions            map[uint64]*actor.PID
+	partitionProps        *actor.Props
+	clusterInfo           *command.ClusterInfo
+	ackRecorder           *util.AckRecorder
+	combinedMessagesAck   *util.AckRecorder
+	ssMessageBuf          *superStepMsgBuf
+	aggregatedCurrentStep map[string]*any.Any
 }
 
 // NewWorkerActor returns a new actor instance
@@ -121,6 +123,7 @@ func (state *workerActor) idle(context actor.Context) {
 		state.ssMessageBuf.clear()
 		state.broadcastToPartitions(context, cmd)
 		state.resetAckRecorder()
+		state.aggregatedCurrentStep = make(map[string]*any.Any)
 		state.combinedMessagesAck.Clear()
 		state.behavior.Become(state.waitSuperStepBarrierAck)
 		return
@@ -165,6 +168,13 @@ func (state *workerActor) superstep(context actor.Context) {
 		return
 
 	case *command.ComputePartitionAck:
+		// TODO: aggregate halted status
+		if cmd.AggregatedValues != nil {
+			if err := aggregateValueMap(state.plugin.GetAggregators(), state.aggregatedCurrentStep, cmd.AggregatedValues); err != nil {
+				state.ActorUtil.Fail(err)
+				return
+			}
+		}
 		if !state.ackRecorder.Ack(strconv.FormatUint(cmd.PartitionId, 10)) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("ComputeAck duplicated: id=%v", cmd.PartitionId))
 		}
@@ -189,7 +199,6 @@ func (state *workerActor) superstep(context actor.Context) {
 				state.computeAckAndBecomeIdle(context)
 			}
 		}
-		// TODO: aggregate halted status
 		return
 
 	case *command.SuperStepMessage:
@@ -307,8 +316,10 @@ func (state *workerActor) findWorkerInfoByPartition(partitionID uint64) *command
 
 func (state *workerActor) computeAckAndBecomeIdle(context actor.Context) {
 	context.Send(context.Parent(), &command.ComputeWorkerAck{
-		WorkerPid: context.Self(),
+		WorkerPid:        context.Self(),
+		AggregatedValues: state.aggregatedCurrentStep,
 	})
+	state.aggregatedCurrentStep = nil
 	state.resetAckRecorder()
 	state.behavior.Become(state.idle)
 	state.ActorUtil.LogInfo("compute has completed for worker")

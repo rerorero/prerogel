@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/util"
@@ -23,14 +24,14 @@ type vertexActor struct {
 	messageQueue          []Message
 	ackRecorder           *util.AckRecorder
 	computeRespondTo      *actor.PID
-	aggregatedCurrentStep []*command.AggregatedValue
+	aggregatedCurrentStep map[string]*any.Any
 }
 
 type computeContextImpl struct {
 	superStep          uint64
 	ctx                actor.Context
 	vertexActor        *vertexActor
-	aggregatedPrevStep []*command.AggregatedValue
+	aggregatedPrevStep map[string]*any.Any
 }
 
 func (c *computeContextImpl) SuperStep() uint64 {
@@ -69,62 +70,49 @@ func (c *computeContextImpl) VoteToHalt() {
 }
 
 func (c *computeContextImpl) GetAggregated(aggregatorName string) (AggregatableValue, bool, error) {
-	aggregator, err := c.findAggregator(aggregatorName)
+	aggregator, err := findAggregator(c.vertexActor.plugin.GetAggregators(), aggregatorName)
 	if err != nil {
 		return nil, false, err
 	}
-	for _, a := range c.aggregatedPrevStep {
-		if a.AggregatorName == aggregatorName {
-			v, err := aggregator.UnmarshalValue(a.Value)
-			if err != nil {
-				return nil, false, errors.Wrapf(err, "failed to unmarshal aggregated value: %+v", a.Value)
-			}
-			return v, true, nil
+
+	value, ok := c.aggregatedPrevStep[aggregatorName]
+	if ok {
+		v, err := aggregator.UnmarshalValue(value)
+		if err != nil {
+			return nil, false, errors.Wrapf(err, "failed to unmarshal aggregated value: %+v", value)
 		}
+		return v, true, nil
 	}
 	return nil, false, nil
 }
 
 func (c *computeContextImpl) PutAggregatable(aggregatorName string, v AggregatableValue) error {
-	aggregator, err := c.findAggregator(aggregatorName)
+	aggregator, err := findAggregator(c.vertexActor.plugin.GetAggregators(), aggregatorName)
 	if err != nil {
 		return err
 	}
 
-	for _, current := range c.vertexActor.aggregatedCurrentStep {
-		if current.AggregatorName == aggregatorName {
-			// aggregate TODO: verbose marshalling
-			v2, err := aggregator.UnmarshalValue(current.Value)
-			if err != nil {
-				return errors.Wrapf(err, "failed to unmarshal aggregated value: %+v", current.Value)
-			}
-			pb, err := aggregator.MarshalValue(aggregator.Aggregate(v, v2))
-			if err != nil {
-				return errors.Wrapf(err, "failed to marshal aggregatable value: %#v", v)
-			}
-			current.Value = pb
-			return nil
+	current, ok := c.vertexActor.aggregatedCurrentStep[aggregatorName]
+	if ok {
+		// aggregate TODO: verbose marshalling
+		v2, err := aggregator.UnmarshalValue(current)
+		if err != nil {
+			return errors.Wrapf(err, "failed to unmarshal aggregated value: %+v", current.Value)
 		}
+		pb, err := aggregator.MarshalValue(aggregator.Aggregate(v, v2))
+		if err != nil {
+			return errors.Wrapf(err, "failed to marshal aggregatable value: %#v", v)
+		}
+		c.vertexActor.aggregatedCurrentStep[aggregatorName] = pb
+		return nil
 	}
 
 	pb, err := aggregator.MarshalValue(v)
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal aggregatable value: %#v", v)
 	}
-	c.vertexActor.aggregatedCurrentStep = append(c.vertexActor.aggregatedCurrentStep, &command.AggregatedValue{
-		AggregatorName: aggregatorName,
-		Value:          pb,
-	})
+	c.vertexActor.aggregatedCurrentStep[aggregatorName] = pb
 	return nil
-}
-
-func (c *computeContextImpl) findAggregator(name string) (Aggregator, error) {
-	for _, a := range c.vertexActor.plugin.GetAggregators() {
-		if a.Name() == name {
-			return a, nil
-		}
-	}
-	return nil, fmt.Errorf("%s: no such aggregator", name)
 }
 
 // NewVertexActor returns an actor instance
@@ -259,6 +247,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 		return
 	}
 
+	state.aggregatedCurrentStep = make(map[string]*any.Any)
 	if state.ackRecorder.HasCompleted() {
 		state.respondComputeAck(ctx)
 	}
@@ -271,5 +260,6 @@ func (state *vertexActor) respondComputeAck(ctx actor.Context) {
 		Halted:           state.halted,
 		AggregatedValues: state.aggregatedCurrentStep,
 	})
+	state.aggregatedCurrentStep = nil
 	state.ActorUtil.LogDebug("compute() completed")
 }

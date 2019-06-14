@@ -10,6 +10,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rerorero/prerogel/util"
 	"github.com/rerorero/prerogel/worker/command"
@@ -35,7 +36,11 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 		{
 			name: "transition from init to superstep",
 			fields: fields{
-				plugin: &MockedPlugin{},
+				plugin: &MockedPlugin{
+					GetAggregatorsMock: func() []Aggregator {
+						return nil
+					},
+				},
 				vertexProps: actor.PropsFromFunc(func(c actor.Context) {
 					mockMux.Lock()
 					defer mockMux.Unlock()
@@ -76,7 +81,11 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 		{
 			name: "superstep, compute, Ack",
 			fields: fields{
-				plugin: &MockedPlugin{},
+				plugin: &MockedPlugin{
+					GetAggregatorsMock: func() []Aggregator {
+						return nil
+					},
+				},
 				vertexProps: actor.PropsFromFunc(func(c actor.Context) {
 					mockMux.Lock()
 					defer mockMux.Unlock()
@@ -109,7 +118,10 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 				&command.LoadVertexAck{PartitionId: 123, VertexId: "test2"},
 				&command.LoadVertexAck{PartitionId: 123, VertexId: "test3"},
 				&command.SuperStepBarrierPartitionAck{PartitionId: 123},
-				&command.ComputePartitionAck{PartitionId: 123},
+				&command.ComputePartitionAck{
+					PartitionId:      123,
+					AggregatedValues: make(map[string]*any.Any),
+				},
 			},
 			wantInitializedVertex: []string{"test1", "test2", "test3"},
 		},
@@ -152,7 +164,11 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 	vid := []VertexID{"test-1", "test-2", "test-3"}
 	var called int32
 	var messageAckCount int32
-	plugin := &MockedPlugin{}
+	plugin := &MockedPlugin{
+		GetAggregatorsMock: func() []Aggregator {
+			return nil
+		},
+	}
 	vertexProps := actor.PropsFromFunc(func(c actor.Context) {
 		switch cmd := c.Message().(type) {
 		case *command.LoadVertex:

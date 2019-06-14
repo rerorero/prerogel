@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/rerorero/prerogel/util"
 	"github.com/rerorero/prerogel/worker/command"
 	"github.com/sirupsen/logrus"
@@ -11,12 +12,13 @@ import (
 
 type partitionActor struct {
 	util.ActorUtil
-	partitionID uint64
-	behavior    actor.Behavior
-	plugin      Plugin
-	vertices    map[VertexID]*actor.PID
-	vertexProps *actor.Props
-	ackRecorder *util.AckRecorder
+	partitionID           uint64
+	behavior              actor.Behavior
+	plugin                Plugin
+	vertices              map[VertexID]*actor.PID
+	vertexProps           *actor.Props
+	ackRecorder           *util.AckRecorder
+	aggregatedCurrentStep map[string]*any.Any
 }
 
 // NewPartitionActor returns an actor instance
@@ -89,6 +91,7 @@ func (state *partitionActor) idle(context actor.Context) {
 		state.resetAckRecorder()
 		state.broadcastToVertices(context, cmd)
 		state.behavior.Become(state.waitSuperStepBarrierAck)
+		state.aggregatedCurrentStep = make(map[string]*any.Any)
 		return
 	default:
 		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled partition command: command=%#v", cmd))
@@ -125,18 +128,27 @@ func (state *partitionActor) superstep(context actor.Context) {
 		return
 
 	case *command.ComputeAck: // sent from vertices
+		// TODO: aggregate halted status
+		if cmd.AggregatedValues != nil {
+			if err := aggregateValueMap(state.plugin.GetAggregators(), state.aggregatedCurrentStep, cmd.AggregatedValues); err != nil {
+				state.ActorUtil.Fail(err)
+				return
+			}
+		}
+
 		if !state.ackRecorder.Ack(cmd.VertexId) {
 			state.ActorUtil.LogWarn(fmt.Sprintf("ComputeAck duplicated: id=%v", cmd.VertexId))
 		}
 		if state.ackRecorder.HasCompleted() {
 			context.Send(context.Parent(), &command.ComputePartitionAck{
-				PartitionId: state.partitionID,
+				PartitionId:      state.partitionID,
+				AggregatedValues: state.aggregatedCurrentStep,
 			})
 			state.resetAckRecorder()
+			state.aggregatedCurrentStep = nil
 			state.behavior.Become(state.idle)
 			state.ActorUtil.LogInfo("compute has completed for partition")
 		}
-		// TODO: aggregate halted status
 		return
 
 	case *command.SuperStepMessage:
