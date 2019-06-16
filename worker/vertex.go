@@ -279,6 +279,8 @@ func (state *vertexActor) respondComputeAck(ctx actor.Context) {
 		}
 	}
 
+	// TODO: store vertex state
+
 	ctx.Send(state.computeRespondTo, &command.ComputeAck{
 		VertexId:         string(state.vertex.GetID()),
 		Halted:           state.halted,

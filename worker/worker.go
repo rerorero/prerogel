@@ -2,6 +2,8 @@ package worker
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"strconv"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
@@ -66,15 +68,9 @@ func (state *workerActor) Receive(context actor.Context) {
 func (state *workerActor) waitInit(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.InitWorker:
-		info := workerInfoOf(cmd.ClusterInfo, context.Self())
-		if info == nil {
-			state.ActorUtil.Fail(fmt.Errorf("worker not assigned: me=%v", context.Self().GetId()))
-			return
-		}
 		state.ActorUtil.AppendLoggerField("worker_id", context.Self().GetId())
-		state.clusterInfo = cmd.ClusterInfo
 
-		for _, partition := range info.Partitions {
+		for _, partition := range cmd.Partitions {
 			if _, ok := state.partitions[partition]; ok {
 				state.ActorUtil.LogWarn(fmt.Sprintf("partition=%v has already created", partition))
 				continue
@@ -121,6 +117,13 @@ func (state *workerActor) waitPartitionInitAck(context actor.Context) {
 func (state *workerActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrier:
+		if err := state.checkClusterInfo(cmd.ClusterInfo, context.Self()); err != nil {
+			state.ActorUtil.Fail(err)
+			return
+		}
+		state.clusterInfo = cmd.ClusterInfo
+		state.ActorUtil.AppendLoggerField("worker_id", context.Self().GetId())
+		state.clusterInfo = cmd.ClusterInfo
 		state.ssMessageBuf.clear()
 		state.broadcastToPartitions(context, cmd)
 		state.resetAckRecorder()
@@ -264,11 +267,27 @@ func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *com
 	return
 }
 
-func workerInfoOf(clusterInfo *command.ClusterInfo, pid *actor.PID) *command.WorkerInfo {
-	for _, info := range clusterInfo.WorkerInfo {
-		if info.WorkerPid.Id == pid.GetId() {
-			return info
+func (state *workerActor) checkClusterInfo(clusterInfo *command.ClusterInfo, self *actor.PID) error {
+	var cmdPartitions []uint64
+	for _, i := range clusterInfo.WorkerInfo {
+		if i.WorkerPid.Id == self.GetId() {
+			cmdPartitions = i.Partitions
+			break
 		}
+	}
+	if cmdPartitions == nil {
+		return fmt.Errorf("worker not found in command.WorkerInfo: me=%v", self)
+	}
+	var currentPartitions []uint64
+	for p := range state.partitions {
+		currentPartitions = append(currentPartitions, p)
+	}
+	sort.Slice(cmdPartitions, func(i, j int) bool { return cmdPartitions[i] < cmdPartitions[j] })
+	sort.Slice(currentPartitions, func(i, j int) bool { return currentPartitions[i] < currentPartitions[j] })
+
+	if !reflect.DeepEqual(cmdPartitions, currentPartitions) {
+		// TODO: reconcile partitions
+		return fmt.Errorf("assigned partitions has changed: %v -> %v", currentPartitions, cmdPartitions)
 	}
 	return nil
 }

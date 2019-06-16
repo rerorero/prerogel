@@ -320,25 +320,27 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	// move state forward
 	called = 0
 	if _, err := proxy.SendAndAwait(context, &command.InitWorker{
-		ClusterInfo: &command.ClusterInfo{
-			WorkerInfo: []*command.WorkerInfo{
-				{
-					WorkerPid:  proxy.Underlying(),
-					Partitions: partitions,
-				},
-				{
-					WorkerPid:  other1,
-					Partitions: []uint64{4, 5, 6},
-				},
-			},
-		},
+		Partitions: partitions,
 	}, &command.InitWorkerAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}
 
+	ci := &command.ClusterInfo{
+		WorkerInfo: []*command.WorkerInfo{
+			{
+				WorkerPid:  proxy.Underlying(),
+				Partitions: partitions,
+			},
+			{
+				WorkerPid:  other1,
+				Partitions: []uint64{4, 5, 6},
+			},
+		},
+	}
+
 	// step 0
 	called = 0
-	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
+	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{ClusterInfo: ci}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}
 	called = 0
@@ -348,7 +350,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 
 	// step 1
 	called = 0
-	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
+	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{ClusterInfo: ci}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}
 	called = 0
@@ -363,7 +365,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 
 	// step 2
 	called = 0
-	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
+	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{ClusterInfo: ci}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}
 	called = 0

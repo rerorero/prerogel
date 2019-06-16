@@ -12,7 +12,9 @@ message LoadVertexAck {
     string vertex_id = 2;
 }
 
-message SuperStepBarrier {}
+message SuperStepBarrier {
+    ClusterInfo clusterInfo = 1;
+}
 message SuperStepBarrierAck {
     string vertex_id = 1;
 }
@@ -71,8 +73,14 @@ message WorkerInfo {
 }
 
 message InitWorker {
-    ClusterInfo clusterInfo = 1;
+    repeated uint64 partitions = 1;
 }
+
 message InitWorkerAck {
     actor.PID worker_pid = 1;
+}
+
+message AddWorker {
+    string hostAndPort = 1;
+    repeated uint64 partitions = 2;
 }
