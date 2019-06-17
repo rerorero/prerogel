@@ -51,7 +51,6 @@ message SuperStepMessage {
     google.protobuf.Any message = 5;
 }
 
-// SuperStepMessageAck is used to guarantee receipt messages at each end of super step
 message SuperStepMessageAck {
     string uuid = 1;
 }
@@ -64,12 +63,11 @@ message InitPartitionAck {
 }
 
 message ClusterInfo {
+    message WorkerInfo {
+        actor.PID worker_pid = 1;
+        repeated uint64 partitions = 2;
+    }
     repeated WorkerInfo worker_info = 1;
-}
-
-message WorkerInfo {
-    actor.PID worker_pid = 1;
-    repeated uint64 partitions = 2;
 }
 
 message InitWorker {
@@ -81,7 +79,11 @@ message InitWorkerAck {
 }
 
 message NewCluster {
-    repeated uint64 partitions = 1;
-    repeated string workers = 2;
+    message WorkerReq {
+        bool remote = 1;
+        string host_and_port = 2;
+    }
+    repeated WorkerReq workers = 1;
+    uint64 nr_of_partitions = 2;
 }
 
