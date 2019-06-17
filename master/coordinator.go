@@ -5,6 +5,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/command"
 	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
@@ -33,7 +34,7 @@ func NewCoordinatorActor(plg plugin.Plugin, workerProps *actor.Props, logger *lo
 		workerProps: workerProps,
 		ackRecorder: ar,
 	}
-	a.behavior.Become(a.waitInit)
+	a.behavior.Become(a.idle)
 	return a
 }
 
@@ -46,12 +47,41 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 	state.behavior.Receive(context)
 }
 
-func (state *coordinatorActor) waitInit(context actor.Context) {
+func (state *coordinatorActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
-	case *command.AddWorker:
+	case *command.NewCluster:
+		//for _, : = range cmd.Workers
 
+		//if cmd.HostAndPort == "" {
+		//	pid = context.Spawn(state.workerProps)
+		//} else {
+		//	pidRes, err := remote.SpawnNamed(cmd.HostAndPort, "master", "worker", 30*time.Second)
+		//	if err != nil {
+		//		state.ActorUtil.LogError(fmt.Sprintf("failed to spawn remote actor: %d", pidRes.StatusCode))
+		//	}
+		//	if err != nil {
+		//		state.ActorUtil.LogError(fmt.Sprintf("failed to spawn remote actor: %d", pidRes.StatusCode))
+		//		return
+		//	}
+		//	pid = pidRes.Pid
+		//}
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled worker command: command=%#v", cmd))
+		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled corrdinator command: command=%#v", cmd))
 		return
 	}
+}
+
+type workerAndPartitions struct {
+	worker     string
+	partitions []uint64
+}
+
+func assignPartition(workers []string, partitions uint64) ([]*workerAndPartitions, error) {
+	if len(workers) == 0 {
+		return nil, errors.New("no available workers")
+	}
+	var pairs []*workerAndPartitions
+	max := partitions / uint64(len(workers))
+
+	return pairs
 }

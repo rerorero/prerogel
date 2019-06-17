@@ -80,7 +80,8 @@ message InitWorkerAck {
     actor.PID worker_pid = 1;
 }
 
-message AddWorker {
-    string hostAndPort = 1;
-    repeated uint64 partitions = 2;
+message NewCluster {
+    repeated uint64 partitions = 1;
+    repeated string workers = 2;
 }
+
