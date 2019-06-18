@@ -4,17 +4,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rerorero/prerogel/aggregator"
-
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/aggregator"
 	"github.com/rerorero/prerogel/command"
 	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
 	"github.com/sirupsen/logrus"
 )
+
+type lastAggregated struct {
+	superstep uint64
+	values    map[string]*any.Any
+}
 
 type coordinatorActor struct {
 	util.ActorUtil
@@ -24,6 +28,7 @@ type coordinatorActor struct {
 	clusterInfo           *command.ClusterInfo
 	ackRecorder           *util.AckRecorder
 	aggregatedCurrentStep map[string]*any.Any
+	lastAggregatedValue   lastAggregated
 	currentStep           uint64
 }
 
@@ -49,7 +54,26 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 		// ignore
 		return
 	}
-	state.behavior.Receive(context)
+
+	switch context.Message().(type) {
+	case *command.CoordinatorStats:
+		s := &command.CoordinatorStatsAck{}
+		if state.lastAggregatedValue.values != nil {
+			stats, err := state.getStats(state.lastAggregatedValue.values)
+			if err != nil {
+				state.ActorUtil.Fail(err)
+				return
+			}
+			s.SuperStep = state.lastAggregatedValue.superstep
+			s.NrOfActiveVertex = stats.ActiveVertices
+			s.NrOfSentMessages = stats.MessagesSent
+		}
+		context.Respond(s)
+		return
+
+	default:
+		state.behavior.Receive(context)
+	}
 }
 
 func (state *coordinatorActor) idle(context actor.Context) {
@@ -89,8 +113,10 @@ func (state *coordinatorActor) idle(context actor.Context) {
 				Partitions: assigned[i],
 			})
 			state.ackRecorder.AddToWaitList(pid.GetId())
-			ci.WorkerInfo[i].WorkerPid = pid
-			ci.WorkerInfo[i].Partitions = assigned[i]
+			ci.WorkerInfo[i] = &command.ClusterInfo_WorkerInfo{
+				WorkerPid:  pid,
+				Partitions: assigned[i],
+			}
 		}
 
 		state.clusterInfo = ci
@@ -135,7 +161,8 @@ func (state *coordinatorActor) superstep(context actor.Context) {
 			state.ackRecorder.Clear()
 			for _, wi := range state.clusterInfo.WorkerInfo {
 				context.Request(wi.WorkerPid, &command.Compute{
-					SuperStep: state.currentStep,
+					SuperStep:        state.currentStep,
+					AggregatedValues: state.lastAggregatedValue.values,
 				})
 				state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
 			}
@@ -167,14 +194,9 @@ func (state *coordinatorActor) computing(context actor.Context) {
 			state.ackRecorder.Clear()
 
 			// check if there are active vertices
-			v, err := getAggregatedValue(state.plugin.GetAggregators(), state.aggregatedCurrentStep, aggregator.VertexStatsName)
+			stats, err := state.getStats(state.aggregatedCurrentStep)
 			if err != nil {
 				state.ActorUtil.Fail(err)
-				return
-			}
-			stats, ok := v.(*aggregator.VertexStats)
-			if !ok {
-				state.ActorUtil.Fail(fmt.Errorf("not VertexStats %#v", v))
 				return
 			}
 
@@ -196,6 +218,11 @@ func (state *coordinatorActor) computing(context actor.Context) {
 				state.behavior.Become(state.superstep)
 				state.ActorUtil.Logger.Debug(fmt.Sprintf("start computing: step=%v", state.currentStep))
 			}
+
+			// update aggregated values
+			state.lastAggregatedValue.superstep = state.currentStep
+			state.lastAggregatedValue.values = state.aggregatedCurrentStep
+			state.aggregatedCurrentStep = make(map[string]*any.Any)
 		}
 		return
 
@@ -203,6 +230,20 @@ func (state *coordinatorActor) computing(context actor.Context) {
 		state.ActorUtil.Fail(fmt.Errorf("[computing] unhandled corrdinator command: command=%#v", cmd))
 		return
 	}
+}
+
+func (state *coordinatorActor) getStats(aggregated map[string]*any.Any) (*aggregator.VertexStats, error) {
+	v, err := getAggregatedValue(state.plugin.GetAggregators(), aggregated, aggregator.VertexStatsName)
+	if err != nil {
+		return nil, err
+	}
+
+	stats, ok := v.(*aggregator.VertexStats)
+	if !ok {
+		return nil, fmt.Errorf("not VertexStats %#v", v)
+	}
+
+	return stats, nil
 }
 
 func assignPartition(nrOfWorkers int, nrOfPartitions uint64) ([][]uint64, error) {

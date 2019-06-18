@@ -87,3 +87,9 @@ message NewCluster {
     uint64 nr_of_partitions = 2;
 }
 
+message CoordinatorStats {}
+message CoordinatorStatsAck {
+    uint64 super_step = 1;
+    uint64 nr_of_active_vertex = 2;
+    uint64 nr_of_sent_messages = 3;
+}

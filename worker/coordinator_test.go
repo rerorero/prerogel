@@ -1,9 +1,19 @@
 package worker
 
 import (
+	"sort"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
+	"github.com/rerorero/prerogel/aggregator"
+	"github.com/rerorero/prerogel/command"
+	"github.com/rerorero/prerogel/plugin"
+	"github.com/rerorero/prerogel/util"
+	"github.com/sirupsen/logrus/hooks/test"
 )
 
 func Test_assignPartition(t *testing.T) {
@@ -95,5 +105,142 @@ func Test_assignPartition(t *testing.T) {
 				t.Errorf("assignPartition() = %s", diff)
 			}
 		})
+	}
+}
+
+func TestNewCoordinatorActor(t *testing.T) {
+	var mux sync.Mutex
+	var initCount int32
+	var barrierCount int32
+	var receivedPartitions []uint64
+	var stepCount int32
+	waitCh := make(chan string, 1)
+	logger, _ := test.NewNullLogger()
+	plugin := &MockedPlugin{
+		GetAggregatorsMock: func() []plugin.Aggregator {
+			return []plugin.Aggregator{aggregator.VertexStatsAggregatorInstance}
+		},
+	}
+
+	workerProps := actor.PropsFromFunc(func(c actor.Context) {
+		mux.Lock()
+		defer mux.Unlock()
+		switch cmd := c.Message().(type) {
+		case *command.InitWorker:
+			initCount++
+			receivedPartitions = append(receivedPartitions, cmd.Partitions...)
+			c.Respond(&command.InitWorkerAck{WorkerPid: c.Self()})
+			if initCount == 3 {
+				waitCh <- "InitWorker"
+				initCount = 0
+			}
+		case *command.SuperStepBarrier:
+			barrierCount++
+			if len(cmd.ClusterInfo.WorkerInfo) != 3 {
+				t.Fatal("unexpected worker len")
+			}
+			c.Respond(&command.SuperStepBarrierWorkerAck{WorkerPid: c.Self()})
+			if barrierCount == 3 {
+				waitCh <- "SuperStepBarrier"
+				barrierCount = 0
+			}
+		case *command.Compute:
+			stepCount++
+			active := 2
+			if cmd.SuperStep == 2 {
+				active = 0 // to finish
+			}
+			v, err := aggregator.VertexStatsAggregatorInstance.MarshalValue(&aggregator.VertexStats{
+				ActiveVertices: uint64(active),
+				TotalVertices:  2,
+				MessagesSent:   4,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			c.Respond(&command.ComputeWorkerAck{
+				WorkerPid: c.Self(),
+				AggregatedValues: map[string]*any.Any{
+					aggregator.VertexStatsName: v,
+				},
+			})
+			if stepCount == 3 {
+				waitCh <- "Compute"
+				stepCount = 0
+			}
+		}
+	})
+
+	coordinatorProps := actor.PropsFromProducer(func() actor.Actor {
+		return NewCoordinatorActor(plugin, workerProps, logger)
+	})
+	context := actor.EmptyRootContext
+	proxy := util.NewActorProxy(context, coordinatorProps, func(ctx actor.Context) {
+	})
+
+	// initialize
+	initCount = 0
+	proxy.Send(context, &command.NewCluster{
+		Workers: []*command.NewCluster_WorkerReq{
+			{Remote: false},
+			{Remote: false},
+			{Remote: false},
+		},
+		NrOfPartitions: 10,
+	})
+	if s := <-waitCh; s != "InitWorker" {
+		t.Fatal("unexpected initCount")
+	}
+	sort.Slice(receivedPartitions, func(i, j int) bool { return receivedPartitions[i] < receivedPartitions[j] })
+	if diff := cmp.Diff(receivedPartitions, []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}); diff != "" {
+		t.Fatalf("unexpected partitions: %s", diff)
+	}
+
+	// step 0
+	if s := <-waitCh; s != "SuperStepBarrier" {
+		t.Fatal("unexpected barrierCount")
+	}
+	if s := <-waitCh; s != "Compute" {
+		t.Fatal("unexpected stepCount")
+	}
+
+	resp, err := proxy.SendAndAwait(context, &command.CoordinatorStats{}, &command.CoordinatorStatsAck{}, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(resp, &command.CoordinatorStatsAck{
+		SuperStep:        1,
+		NrOfActiveVertex: 6,
+		NrOfSentMessages: 12,
+	}); diff != "" {
+		t.Fatalf("unexpected stats: %s", diff)
+	}
+
+	// step 1
+	if s := <-waitCh; s != "SuperStepBarrier" {
+		t.Fatal("unexpected barrierCount")
+	}
+	if s := <-waitCh; s != "Compute" {
+		t.Fatal("unexpected stepCount")
+	}
+
+	// step 2
+	if s := <-waitCh; s != "SuperStepBarrier" {
+		t.Fatal("unexpected barrierCount")
+	}
+	if s := <-waitCh; s != "Compute" {
+		t.Fatal("unexpected stepCount")
+	}
+
+	resp, err = proxy.SendAndAwait(context, &command.CoordinatorStats{}, &command.CoordinatorStatsAck{}, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(resp, &command.CoordinatorStatsAck{
+		SuperStep:        2,
+		NrOfActiveVertex: 0,
+		NrOfSentMessages: 12,
+	}); diff != "" {
+		t.Fatalf("unexpected stats: %s", diff)
 	}
 }

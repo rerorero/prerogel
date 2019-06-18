@@ -326,7 +326,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	}
 
 	ci := &command.ClusterInfo{
-		WorkerInfo: []*command.WorkerInfo{
+		WorkerInfo: []*command.ClusterInfo_WorkerInfo{
 			{
 				WorkerPid:  proxy.Underlying(),
 				Partitions: partitions,

@@ -314,7 +314,7 @@ func (state *workerActor) resetAckRecorder() {
 	}
 }
 
-func (state *workerActor) findWorkerInfoByVertex(vid plugin.VertexID) *command.WorkerInfo {
+func (state *workerActor) findWorkerInfoByVertex(vid plugin.VertexID) *command.ClusterInfo_WorkerInfo {
 	p, err := state.plugin.Partition(vid, state.numOfPartitions())
 	if err != nil {
 		state.ActorUtil.LogError(fmt.Sprintf("failed to Partition(): %v", err))
@@ -323,7 +323,7 @@ func (state *workerActor) findWorkerInfoByVertex(vid plugin.VertexID) *command.W
 	return state.findWorkerInfoByPartition(p)
 }
 
-func (state *workerActor) findWorkerInfoByPartition(partitionID uint64) *command.WorkerInfo {
+func (state *workerActor) findWorkerInfoByPartition(partitionID uint64) *command.ClusterInfo_WorkerInfo {
 	for _, info := range state.clusterInfo.WorkerInfo {
 		for _, p := range info.Partitions {
 			if p == partitionID {

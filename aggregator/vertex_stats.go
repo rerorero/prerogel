@@ -11,6 +11,9 @@ import (
 // VertexStatsName is aggregator name of VertexStatsAggregator
 const VertexStatsName = "prerogel/vertex-stats"
 
+// VertexStatsAggregatorInstance is singleton
+var VertexStatsAggregatorInstance = &VertexStatsAggregator{}
+
 // VertexStatsAggregator is aggregator for VertexStats
 type VertexStatsAggregator struct{}
 
