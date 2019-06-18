@@ -1,15 +1,16 @@
-package master
+package worker
 
 import (
 	"fmt"
 	"time"
+
+	"github.com/rerorero/prerogel/aggregator"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/command"
-	"github.com/rerorero/prerogel/constants"
 	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
 	"github.com/sirupsen/logrus"
@@ -23,6 +24,7 @@ type coordinatorActor struct {
 	clusterInfo           *command.ClusterInfo
 	ackRecorder           *util.AckRecorder
 	aggregatedCurrentStep map[string]*any.Any
+	currentStep           uint64
 }
 
 // NewCoordinatorActor returns an actor instance
@@ -72,7 +74,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 			var pid *actor.PID
 			if wreq.Remote {
 				// remote actor
-				pidRes, err := remote.SpawnNamed(wreq.HostAndPort, constants.REMOTE_COORDINATOR_NAME, constants.REMOTE_WORKER_NAME, 30*time.Second)
+				pidRes, err := remote.SpawnNamed(wreq.HostAndPort, RemoteCoordinatorName, RemoteWorkerName, 30*time.Second)
 				if err != nil {
 					state.ActorUtil.Fail(errors.Wrapf(err, "failed to spawn remote actor: code=%v", pidRes.StatusCode))
 					return
@@ -102,6 +104,8 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		}
 		if state.ackRecorder.HasCompleted() {
 			state.ackRecorder.Clear()
+			state.aggregatedCurrentStep = make(map[string]*any.Any)
+			state.currentStep = 0
 			for _, wi := range state.clusterInfo.WorkerInfo {
 				context.Request(wi.WorkerPid, &command.SuperStepBarrier{
 					ClusterInfo: state.clusterInfo,
@@ -123,8 +127,80 @@ func (state *coordinatorActor) idle(context actor.Context) {
 func (state *coordinatorActor) superstep(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrierWorkerAck:
+		if ok := state.ackRecorder.Ack(cmd.WorkerPid.GetId()); !ok {
+			state.ActorUtil.LogError(fmt.Sprintf("superstep barrier ack from unknown worker: %v", cmd.WorkerPid))
+			return
+		}
+		if state.ackRecorder.HasCompleted() {
+			state.ackRecorder.Clear()
+			for _, wi := range state.clusterInfo.WorkerInfo {
+				context.Request(wi.WorkerPid, &command.Compute{
+					SuperStep: state.currentStep,
+				})
+				state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
+			}
+			state.behavior.Become(state.computing)
+			state.ActorUtil.Logger.Debug(fmt.Sprintf("start computing: step=%v", state.currentStep))
+		}
+		return
+
 	default:
 		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled corrdinator command: command=%#v", cmd))
+		return
+	}
+}
+func (state *coordinatorActor) computing(context actor.Context) {
+	switch cmd := context.Message().(type) {
+	case *command.ComputeWorkerAck:
+		if ok := state.ackRecorder.Ack(cmd.WorkerPid.GetId()); !ok {
+			state.ActorUtil.LogError(fmt.Sprintf("compute ack from unknown worker: %v", cmd.WorkerPid))
+			return
+		}
+
+		if cmd.AggregatedValues != nil {
+			if err := aggregateValueMap(state.plugin.GetAggregators(), state.aggregatedCurrentStep, cmd.AggregatedValues); err != nil {
+				state.ActorUtil.Fail(err)
+				return
+			}
+		}
+		if state.ackRecorder.HasCompleted() {
+			state.ackRecorder.Clear()
+
+			// check if there are active vertices
+			v, err := getAggregatedValue(state.plugin.GetAggregators(), state.aggregatedCurrentStep, aggregator.VertexStatsName)
+			if err != nil {
+				state.ActorUtil.Fail(err)
+				return
+			}
+			stats, ok := v.(*aggregator.VertexStats)
+			if !ok {
+				state.ActorUtil.Fail(fmt.Errorf("not VertexStats %#v", v))
+				return
+			}
+
+			if stats.ActiveVertices == 0 {
+				// finish superstep
+				state.behavior.Become(state.idle)
+				state.ActorUtil.Logger.Info(fmt.Sprintf("finish computing: step=%v", state.currentStep))
+
+			} else {
+				// move step forward
+				state.currentStep += uint64(1)
+				for _, wi := range state.clusterInfo.WorkerInfo {
+					context.Request(wi.WorkerPid, &command.SuperStepBarrier{
+						ClusterInfo: state.clusterInfo,
+					})
+					state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
+				}
+				// TODO: handle worker timeout
+				state.behavior.Become(state.superstep)
+				state.ActorUtil.Logger.Debug(fmt.Sprintf("start computing: step=%v", state.currentStep))
+			}
+		}
+		return
+
+	default:
+		state.ActorUtil.Fail(fmt.Errorf("[computing] unhandled corrdinator command: command=%#v", cmd))
 		return
 	}
 }

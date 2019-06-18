@@ -8,10 +8,10 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/aggregator"
 	"github.com/rerorero/prerogel/command"
 	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
-	"github.com/rerorero/prerogel/worker/aggregator"
 	"github.com/sirupsen/logrus"
 )
 

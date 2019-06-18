@@ -51,3 +51,17 @@ func findAggregator(aggregators []plugin.Aggregator, name string) (plugin.Aggreg
 	}
 	return nil, fmt.Errorf("%s: no such aggregator", name)
 }
+
+func getAggregatedValue(aggregators []plugin.Aggregator, aggregated map[string]*any.Any, name string) (plugin.AggregatableValue, error) {
+	ag, err := findAggregator(aggregators, name)
+	if err != nil {
+		return err
+	}
+
+	anyVal, ok := aggregated[name]
+	if !ok {
+		return fmt.Errorf("%s: value not found", name)
+	}
+
+	return ag.UnmarshalValue(anyVal)
+}
