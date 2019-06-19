@@ -1,4 +1,4 @@
-package config
+package worker
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // CommonConfig is set of environments for both of worker and master
@@ -27,20 +28,20 @@ type MasterEnv struct {
 }
 
 // ReadEnv reads configuration from env
-func ReadEnv() (interface{}, error) {
+func ReadEnv(prefix string) (interface{}, error) {
 	role := os.Getenv("ROLE")
 
 	switch role {
 	case "worker":
 		var workerEnv WorkerEnv
-		if err := envconfig.Process("", &workerEnv); err != nil {
+		if err := envconfig.Process(prefix, &workerEnv); err != nil {
 			return nil, errors.Wrap(err, "failed to parse env for master: ")
 		}
 		return &workerEnv, nil
 
 	case "master":
 		var masterEnv MasterEnv
-		if err := envconfig.Process("", &masterEnv); err != nil {
+		if err := envconfig.Process(prefix, &masterEnv); err != nil {
 			return nil, errors.Wrap(err, "failed to parse env for master: ")
 		}
 		return &masterEnv, nil
@@ -48,4 +49,15 @@ func ReadEnv() (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("invalid ROLE(%s), it must be one of worker, master", role)
 	}
+}
+
+// SetupLogger configures logger
+func (cc *CommonConfig) Logger() *logrus.Logger {
+	lv, err := logrus.ParseLevel(cc.LogLevel)
+	if err != nil {
+		logrus.Warn(err)
+	} else {
+		logrus.SetLevel(lv)
+	}
+	return logrus.New()
 }
