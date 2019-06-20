@@ -51,7 +51,7 @@ func ReadEnv(prefix string) (interface{}, error) {
 	}
 }
 
-// SetupLogger configures logger
+// Logger returns logger
 func (cc *CommonConfig) Logger() *logrus.Logger {
 	lv, err := logrus.ParseLevel(cc.LogLevel)
 	if err != nil {

@@ -98,7 +98,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 			var pid *actor.PID
 			if wreq.Remote {
 				// remote actor
-				pidRes, err := remote.SpawnNamed(wreq.HostAndPort, RemoteCoordinatorName, RemoteWorkerName, 30*time.Second)
+				pidRes, err := remote.SpawnNamed(wreq.HostAndPort, fmt.Sprintf("%s-%d", WorkerActorKind, i), WorkerActorKind, 30*time.Second)
 				if err != nil {
 					state.ActorUtil.Fail(errors.Wrapf(err, "failed to spawn remote actor: code=%v", pidRes.StatusCode))
 					return

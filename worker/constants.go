@@ -1,9 +1,9 @@
 package worker
 
 const (
-	// RemoteWorkerName is actor name for worker
-	RemoteWorkerName = "worker"
+	// WorkerActorKind is actor kind of worker
+	WorkerActorKind = "worker"
 
-	// RemoteCoordinatorName is actor name for coordinator
-	RemoteCoordinatorName = "coordinator"
+	// CoordinatorActorKind is actor kind of coordinator
+	CoordinatorActorKind = "coordinator"
 )
