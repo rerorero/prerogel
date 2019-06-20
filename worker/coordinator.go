@@ -120,6 +120,8 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		}
 
 		state.clusterInfo = ci
+
+		context.Respond(&command.NewClusterAck{})
 		state.ActorUtil.Logger.Debug("start initializing workers")
 		return
 

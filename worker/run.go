@@ -6,52 +6,82 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/command"
+	"github.com/rerorero/prerogel/config"
 	"github.com/rerorero/prerogel/plugin"
 	"github.com/sirupsen/logrus"
 )
 
 // Run starts worker server
 func Run(ctx context.Context, plg plugin.Plugin, envPrefix string) error {
-	conf, err := ReadEnv(envPrefix)
+	conf, err := config.LoadWorkerConfFromEnv(envPrefix)
 	if err != nil {
 		return err
 	}
 
 	switch c := conf.(type) {
-	case *MasterEnv:
+	case *config.MasterEnv:
 		return RunMaster(ctx, plg, c)
-	case *WorkerEnv:
+	case *config.WorkerEnv:
 		return RunWorker(ctx, plg, c)
 	default:
 		return fmt.Errorf("invalid config: %#v", c)
 	}
-
-	return nil
 }
 
 // RunMaster starts running as master worker
-func RunMaster(ctx context.Context, plg plugin.Plugin, conf *MasterEnv) error {
+func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) error {
 	root := actor.EmptyRootContext
 	logger := conf.Logger()
 
 	workerForLocal := workerProps(plg, logger)
-	coordinator := actor.PropsFromProducer(func() actor.Actor {
+	coordinatorProps := actor.PropsFromProducer(func() actor.Actor {
 		return NewCoordinatorActor(plg, workerForLocal, logger)
 	})
 
 	remote.Start(conf.ListenAddress)
 
-	root.SpawnNamed(coordinator, CoordinatorActorKind)
+	coordinator, err := root.SpawnNamed(coordinatorProps, CoordinatorActorID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to spawn coordinator actor")
+	}
+
+	var workers []*command.NewCluster_WorkerReq
+	for _, w := range conf.WorkerAddresses {
+		workers = append(workers, &command.NewCluster_WorkerReq{
+			Remote:      true,
+			HostAndPort: w,
+		})
+	}
+
+	f := root.RequestFuture(coordinator, &command.NewCluster{
+		Workers:        workers,
+		NrOfPartitions: conf.Partitions,
+	}, 120*time.Second)
+	if err := f.Wait(); err != nil {
+		return errors.Wrap(err, "failed to connect to worker: ")
+	}
+	res, err := f.Result()
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize coordinator: ")
+	}
+	if _, ok := res.(*command.NewClusterAck); !ok {
+		return fmt.Errorf("failed to initialize cooridnator: unknown ack %#v", res)
+	}
+
+	logger.Info("coordinator is running")
 
 	waitUntilDone(ctx)
 	return nil
 }
 
 // RunWorker starts running as normal worker
-func RunWorker(ctx context.Context, plg plugin.Plugin, conf *WorkerEnv) error {
+func RunWorker(ctx context.Context, plg plugin.Plugin, conf *config.WorkerEnv) error {
 	remote.Register(WorkerActorKind, workerProps(plg, conf.Logger()))
 	remote.Start(conf.ListenAddress)
 

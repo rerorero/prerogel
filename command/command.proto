@@ -86,6 +86,7 @@ message NewCluster {
     repeated WorkerReq workers = 1;
     uint64 nr_of_partitions = 2;
 }
+message NewClusterAck {}
 
 message CoordinatorStats {}
 message CoordinatorStatsAck {

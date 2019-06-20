@@ -1,4 +1,4 @@
-package worker
+package config
 
 import (
 	"fmt"
@@ -11,24 +11,26 @@ import (
 
 // CommonConfig is set of environments for both of worker and master
 type CommonConfig struct {
-	LogLevel string `envconfig:"LOG_LEVEL" default:"INFO"`
+	LogLevel string `envconfig:"LOG_LEVEL" default:"INFO" yaml:"log_level"`
 }
 
 // WorkerEnv is set of environments for workers
 type WorkerEnv struct {
 	CommonConfig
-	ListenAddress string `envconfig:"LISTEN_ADDR" default:"127.0.0.1:8801"`
+	ListenAddress string `envconfig:"LISTEN_ADDR" default:"127.0.0.1:8802" yaml:"listen_addr"`
 }
 
 // MasterEnv is set of environments for workers
 type MasterEnv struct {
 	CommonConfig
-	ListenAddress   string `envconfig:"LISTEN_ADDR" default:"127.0.0.1:8801"`
-	WorkerAddresses string `envconfig:"WORKERS" default:""`
+	ListenAddress   string   `envconfig:"LISTEN_ADDR" default:"127.0.0.1:8801" yaml:"listen_addr"`
+	WorkerAddresses []string `envconfig:"WORKERS" default:"" yaml:"worker_addresses"`
+	Partitions      uint64   `envconfig:"partitions" yaml:"partitions"`
 }
 
-// ReadEnv reads configuration from env
-func ReadEnv(prefix string) (interface{}, error) {
+// LoadWorkerConfFromEnv reads configuration from env
+// TODO: validate
+func LoadWorkerConfFromEnv(prefix string) (interface{}, error) {
 	role := os.Getenv("ROLE")
 
 	switch role {
