@@ -2,6 +2,11 @@ module github.com/rerorero/prerogel/examples/maximum
 
 go 1.12
 
+replace github.com/rerorero/prerogel => ../../
+
+// TODO: remove
+replace github.com/AsynkronIT/protoactor-go => ../../../../AsynkronIT/protoactor-go
+
 require (
 	github.com/AsynkronIT/protoactor-go v0.0.0-20190619151400-46c416c5ae7f
 	github.com/golang/protobuf v1.3.1

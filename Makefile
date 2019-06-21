@@ -27,7 +27,7 @@ coverage: dep
 
 PROTO_FILES := $(shell find . \( -path "./vendor" \) -prune -o -type f -name '*.proto' -print)
 PROTO_GEN_FILES = $(patsubst %.proto, %.pb.go, $(PROTO_FILES))
-PROTOC := protoc --go_out=plugins=grpc:.
+PROTOC := protoc --gogoslick_out=plugins=grpc:. --go_out=plugins=grpc:.
 
 plugin:
 	@$(GOCMD) get google.golang.org/grpc
