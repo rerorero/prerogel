@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rerorero/prerogel/examples/maximum/loader"
 	"github.com/rerorero/prerogel/plugin"
@@ -13,6 +14,7 @@ func main() {
 
 	plg = pluginWithHeap()
 
+	fmt.Println("start agent..")
 	if err := worker.Run(context.Background(), plg, ""); err != nil {
 		panic(err)
 	}

@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  woker1: &agent
+    image: golang:1.12-stretch
+    working_dir: /go/src/github.com/github.com/rerorero/prerogel/examples/maximum
+    volumes:
+      - .:/go/src/github.com/github.com/rerorero/prerogel/examples/maximum
+    networks:
+      - max-demo
+    command: "make run"
+    environment:
+      - ROLE=worker
+      - LISTEN_ADDR=0.0.0.0:8801
+
+  worker2:
+    <<: *agent
+    environment:
+      - ROLE=worker
+      - LISTEN_ADDR=0.0.0.0:8802
+
+  master:
+    <<: *agent
+    environment:
+      - ROLE=master
+      - LISTEN_ADDR=0.0.0.0:8803
+      - WORKERS=worker1:8801,worker2:8802
+      - PARTITIONS=4
+    ports:
+      - 8803:8803
+
+networks:
+  max-demo:

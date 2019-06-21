@@ -19,6 +19,7 @@ import (
 
 // Run starts worker server
 func Run(ctx context.Context, plg plugin.Plugin, envPrefix string) error {
+	println("natoring run")
 	conf, err := config.LoadWorkerConfFromEnv(envPrefix)
 	if err != nil {
 		return err
@@ -26,8 +27,10 @@ func Run(ctx context.Context, plg plugin.Plugin, envPrefix string) error {
 
 	switch c := conf.(type) {
 	case *config.MasterEnv:
+		println("natoring mas")
 		return RunMaster(ctx, plg, c)
 	case *config.WorkerEnv:
+		println("natoring wor")
 		return RunWorker(ctx, plg, c)
 	default:
 		return fmt.Errorf("invalid config: %#v", c)
@@ -74,7 +77,7 @@ func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) e
 		return fmt.Errorf("failed to initialize cooridnator: unknown ack %#v", res)
 	}
 
-	logger.Info("coordinator is running")
+	logger.Info(fmt.Sprintf("coordinator is running: addr=%s log=%s", conf.ListenAddress, logger.Level.String()))
 
 	waitUntilDone(ctx)
 	return nil
@@ -82,8 +85,14 @@ func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) e
 
 // RunWorker starts running as normal worker
 func RunWorker(ctx context.Context, plg plugin.Plugin, conf *config.WorkerEnv) error {
-	remote.Register(WorkerActorKind, workerProps(plg, conf.Logger()))
+	println("natoring1")
+	logger := conf.Logger()
+	remote.Register(WorkerActorKind, workerProps(plg, logger))
+	println("natoring2")
 	remote.Start(conf.ListenAddress)
+	println("natoring3")
+
+	logger.Info(fmt.Sprintf("worker is running: addr=%s log=%s", conf.ListenAddress, logger.Level.String()))
 
 	waitUntilDone(ctx)
 	return nil

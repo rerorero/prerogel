@@ -25,7 +25,7 @@ type MasterEnv struct {
 	CommonConfig
 	ListenAddress   string   `envconfig:"LISTEN_ADDR" default:"127.0.0.1:8801" yaml:"listen_addr"`
 	WorkerAddresses []string `envconfig:"WORKERS" default:"" yaml:"worker_addresses"`
-	Partitions      uint64   `envconfig:"partitions" yaml:"partitions"`
+	Partitions      uint64   `envconfig:"PARTITIONS" yaml:"partitions"`
 }
 
 // LoadWorkerConfFromEnv reads configuration from env
