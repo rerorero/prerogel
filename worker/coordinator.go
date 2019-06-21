@@ -147,6 +147,8 @@ func (state *coordinatorActor) setup(context actor.Context) {
 func (state *coordinatorActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.LoadVertex:
+		w := state.findWorkerInfoByVertex(context, plugin.VertexID(cmd.VertexId))
+		if
 
 	case *command.StartSuperStep:
 		state.aggregatedCurrentStep = make(map[string]*types.Any)
@@ -264,6 +266,15 @@ func (state *coordinatorActor) getStats(aggregated map[string]*types.Any) (*aggr
 	}
 
 	return stats, nil
+}
+
+func (state *coordinatorActor) findWorkerInfoByVertex(context actor.Context, vid plugin.VertexID) *command.ClusterInfo_WorkerInfo {
+	p, err := state.plugin.Partition(vid, state.clusterInfo.NumOfPartitions())
+	if err != nil {
+		state.ActorUtil.LogError(context, fmt.Sprintf("failed to Partition(): %v", err))
+		return nil
+	}
+	return state.clusterInfo.FindWoerkerInfoByPartition(p)
 }
 
 func assignPartition(nrOfWorkers int, nrOfPartitions uint64) ([][]uint64, error) {

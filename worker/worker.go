@@ -122,7 +122,7 @@ func (state *workerActor) waitPartitionInitAck(context actor.Context) {
 func (state *workerActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.LoadVertex:
-		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.VertexId), state.numOfPartitions())
+		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.VertexId), state.clusterInfo.NumOfPartitions())
 		if err != nil {
 			state.ActorUtil.Fail(context, fmt.Errorf("failed to find partition for message: %#v", cmd))
 			return
@@ -254,7 +254,7 @@ func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *com
 	}
 
 	if srcWorker.WorkerPid.GetId() == context.Self().GetId() {
-		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.DestVertexId), state.numOfPartitions())
+		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.DestVertexId), state.clusterInfo.NumOfPartitions())
 		if err != nil {
 			state.ActorUtil.Fail(context, fmt.Errorf("failed to find partition for message: %#v", cmd))
 			return
@@ -275,7 +275,7 @@ func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *com
 
 	} else {
 		// when sent from other worker, route it to vertex
-		p, err := state.plugin.Partition(plugin.VertexID(cmd.DestVertexId), state.numOfPartitions())
+		p, err := state.plugin.Partition(plugin.VertexID(cmd.DestVertexId), state.clusterInfo.NumOfPartitions())
 		if err != nil {
 			state.ActorUtil.Fail(context, errors.Wrap(err, "failed to Partition()"))
 			return
@@ -315,14 +315,6 @@ func (state *workerActor) checkClusterInfo(clusterInfo *command.ClusterInfo, sel
 	return nil
 }
 
-func (state *workerActor) numOfPartitions() uint64 {
-	var size uint64
-	for _, i := range state.clusterInfo.WorkerInfo {
-		size += uint64(len(i.Partitions))
-	}
-	return size
-}
-
 func (state *workerActor) broadcastToPartitions(context actor.Context, msg proto.Message) {
 	state.LogDebug(context, fmt.Sprintf("broadcast %#v", msg))
 	for _, pid := range state.partitions {
@@ -338,23 +330,12 @@ func (state *workerActor) resetAckRecorder() {
 }
 
 func (state *workerActor) findWorkerInfoByVertex(context actor.Context, vid plugin.VertexID) *command.ClusterInfo_WorkerInfo {
-	p, err := state.plugin.Partition(vid, state.numOfPartitions())
+	p, err := state.plugin.Partition(vid, state.clusterInfo.NumOfPartitions())
 	if err != nil {
 		state.ActorUtil.LogError(context, fmt.Sprintf("failed to Partition(): %v", err))
 		return nil
 	}
-	return state.findWorkerInfoByPartition(p)
-}
-
-func (state *workerActor) findWorkerInfoByPartition(partitionID uint64) *command.ClusterInfo_WorkerInfo {
-	for _, info := range state.clusterInfo.WorkerInfo {
-		for _, p := range info.Partitions {
-			if p == partitionID {
-				return info
-			}
-		}
-	}
-	return nil
+	return state.clusterInfo.FindWoerkerInfoByPartition(p)
 }
 
 func (state *workerActor) computeAckAndBecomeIdle(context actor.Context) {
