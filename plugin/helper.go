@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 )
 
 // HashPartition calculates hash of id then mod
@@ -18,7 +18,7 @@ func HashPartition(id VertexID, nrOfPartitions uint64) (uint64, error) {
 }
 
 // ConvertStringToAny converts string to any
-func ConvertStringToAny(val interface{}) (*any.Any, error) {
+func ConvertStringToAny(val interface{}) (*types.Any, error) {
 	if val == nil {
 		return nil, nil
 	}
@@ -26,11 +26,11 @@ func ConvertStringToAny(val interface{}) (*any.Any, error) {
 	if !ok {
 		return nil, fmt.Errorf("not string message: %#v", val)
 	}
-	return &any.Any{Value: []byte(s)}, nil
+	return &types.Any{Value: []byte(s)}, nil
 }
 
 // ConvertAntToString converts any to string
-func ConvertAntToString(pb *any.Any) (string, error) {
+func ConvertAntToString(pb *types.Any) (string, error) {
 	if pb == nil {
 		return "", nil
 	}
@@ -38,18 +38,18 @@ func ConvertAntToString(pb *any.Any) (string, error) {
 }
 
 // ConvertUint32ToAny converts interface as a uint32 to any
-func ConvertUint32ToAny(val interface{}) (*any.Any, error) {
+func ConvertUint32ToAny(val interface{}) (*types.Any, error) {
 	n, ok := val.(uint32)
 	if !ok {
 		return nil, fmt.Errorf("not uint32 value: %#v", val)
 	}
 	b := make([]byte, 4)
 	binary.BigEndian.PutUint32(b, n)
-	return &any.Any{Value: b}, nil
+	return &types.Any{Value: b}, nil
 }
 
 // ConvertAnyToUint32 converts any to uint32
-func ConvertAnyToUint32(pb *any.Any) (uint32, error) {
+func ConvertAnyToUint32(pb *types.Any) (uint32, error) {
 	if pb == nil {
 		return 0, nil
 	}

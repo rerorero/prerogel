@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/examples/maximum/loader"
 	"github.com/rerorero/prerogel/plugin"
@@ -78,11 +78,11 @@ func (agg *maxAggregator) Aggregate(v1 plugin.AggregatableValue, v2 plugin.Aggre
 	return v2n, nil
 }
 
-func (agg *maxAggregator) MarshalValue(v plugin.AggregatableValue) (*any.Any, error) {
+func (agg *maxAggregator) MarshalValue(v plugin.AggregatableValue) (*types.Any, error) {
 	return plugin.ConvertUint32ToAny(v)
 }
 
-func (agg *maxAggregator) UnmarshalValue(pb *any.Any) (plugin.AggregatableValue, error) {
+func (agg *maxAggregator) UnmarshalValue(pb *types.Any) (plugin.AggregatableValue, error) {
 	return plugin.ConvertAnyToUint32(pb)
 }
 
@@ -110,12 +110,12 @@ func (p *maxPlugin) Partition(vertex plugin.VertexID, numOfPartitions uint64) (u
 }
 
 // MarshalMessage converts plugin.message to protobuf Any
-func (p *maxPlugin) MarshalMessage(msg plugin.Message) (*any.Any, error) {
+func (p *maxPlugin) MarshalMessage(msg plugin.Message) (*types.Any, error) {
 	return plugin.ConvertUint32ToAny(msg)
 }
 
 // UnmarshalMessage converts protobuf Any to plugin.message
-func (p *maxPlugin) UnmarshalMessage(pb *any.Any) (plugin.Message, error) {
+func (p *maxPlugin) UnmarshalMessage(pb *types.Any) (plugin.Message, error) {
 	return plugin.ConvertAnyToUint32(pb)
 }
 
