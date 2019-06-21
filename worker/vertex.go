@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/aggregator"
@@ -26,7 +26,7 @@ type vertexActor struct {
 	messageQueue          []plugin.Message
 	ackRecorder           *util.AckRecorder
 	computeRespondTo      *actor.PID
-	aggregatedCurrentStep map[string]*any.Any
+	aggregatedCurrentStep map[string]*types.Any
 	statsMessageSent      uint64
 }
 
@@ -34,7 +34,7 @@ type computeContextImpl struct {
 	superStep          uint64
 	ctx                actor.Context
 	vertexActor        *vertexActor
-	aggregatedPrevStep map[string]*any.Any
+	aggregatedPrevStep map[string]*types.Any
 }
 
 var _ = (plugin.ComputeContext)(&computeContextImpl{})
@@ -230,7 +230,7 @@ func (state *vertexActor) superstep(context actor.Context) {
 }
 
 func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
-	state.aggregatedCurrentStep = make(map[string]*any.Any)
+	state.aggregatedCurrentStep = make(map[string]*types.Any)
 	state.statsMessageSent = 0
 
 	// force to compute() in super step 0

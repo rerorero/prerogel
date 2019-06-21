@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rerorero/prerogel/aggregator"
 	"github.com/rerorero/prerogel/command"
@@ -160,7 +160,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 			}
 			c.Respond(&command.ComputeWorkerAck{
 				WorkerPid: c.Self(),
-				AggregatedValues: map[string]*any.Any{
+				AggregatedValues: map[string]*types.Any{
 					aggregator.VertexStatsName: v,
 				},
 			})

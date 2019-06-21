@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/rerorero/prerogel/plugin"
 )
 
@@ -9,8 +9,8 @@ import (
 type MockedPlugin struct {
 	NewVertexMock        func(id plugin.VertexID) (plugin.Vertex, error)
 	PartitionMock        func(id plugin.VertexID, numOfPartitions uint64) (uint64, error)
-	MarshalMessageMock   func(msg plugin.Message) (*any.Any, error)
-	UnmarshalMessageMock func(a *any.Any) (plugin.Message, error)
+	MarshalMessageMock   func(msg plugin.Message) (*types.Any, error)
+	UnmarshalMessageMock func(a *types.Any) (plugin.Message, error)
 	GetCombinerMock      func() func(plugin.VertexID, []plugin.Message) ([]plugin.Message, error)
 	GetAggregatorsMock   func() []plugin.Aggregator
 }
@@ -23,11 +23,11 @@ func (m *MockedPlugin) Partition(id plugin.VertexID, numOfPartitions uint64) (ui
 	return m.PartitionMock(id, numOfPartitions)
 }
 
-func (m *MockedPlugin) MarshalMessage(msg plugin.Message) (*any.Any, error) {
+func (m *MockedPlugin) MarshalMessage(msg plugin.Message) (*types.Any, error) {
 	return m.MarshalMessageMock(msg)
 }
 
-func (m *MockedPlugin) UnmarshalMessage(a *any.Any) (plugin.Message, error) {
+func (m *MockedPlugin) UnmarshalMessage(a *types.Any) (plugin.Message, error) {
 	return m.UnmarshalMessageMock(a)
 }
 
@@ -56,8 +56,8 @@ func (m *MockedVertex) GetID() plugin.VertexID {
 type MockedAggregator struct {
 	NameMock           func() string
 	AggregateMock      func(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) (plugin.AggregatableValue, error)
-	MarshalValueMock   func(v plugin.AggregatableValue) (*any.Any, error)
-	UnmarshalValueMock func(pb *any.Any) (plugin.AggregatableValue, error)
+	MarshalValueMock   func(v plugin.AggregatableValue) (*types.Any, error)
+	UnmarshalValueMock func(pb *types.Any) (plugin.AggregatableValue, error)
 }
 
 func (m *MockedAggregator) Name() string {
@@ -68,11 +68,11 @@ func (m *MockedAggregator) Aggregate(v1 plugin.AggregatableValue, v2 plugin.Aggr
 	return m.AggregateMock(v1, v2)
 }
 
-func (m *MockedAggregator) MarshalValue(v plugin.AggregatableValue) (*any.Any, error) {
+func (m *MockedAggregator) MarshalValue(v plugin.AggregatableValue) (*types.Any, error) {
 	return m.MarshalValueMock(v)
 
 }
 
-func (m *MockedAggregator) UnmarshalValue(pb *any.Any) (plugin.AggregatableValue, error) {
+func (m *MockedAggregator) UnmarshalValue(pb *types.Any) (plugin.AggregatableValue, error) {
 	return m.UnmarshalValueMock(pb)
 }

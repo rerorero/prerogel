@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 )
 
 // VertexValue indicates value which a vertex holds.
@@ -39,16 +39,16 @@ type Vertex interface {
 type Aggregator interface {
 	Name() string
 	Aggregate(v1 AggregatableValue, v2 AggregatableValue) (AggregatableValue, error)
-	MarshalValue(v AggregatableValue) (*any.Any, error)
-	UnmarshalValue(pb *any.Any) (AggregatableValue, error)
+	MarshalValue(v AggregatableValue) (*types.Any, error)
+	UnmarshalValue(pb *types.Any) (AggregatableValue, error)
 }
 
 // Plugin is a plugin that provides graph computation.
 type Plugin interface {
 	NewVertex(id VertexID) (Vertex, error)
 	Partition(vertex VertexID, numOfPartitions uint64) (uint64, error)
-	MarshalMessage(msg Message) (*any.Any, error)
-	UnmarshalMessage(pb *any.Any) (Message, error)
+	MarshalMessage(msg Message) (*types.Any, error)
+	UnmarshalMessage(pb *types.Any) (Message, error)
 	GetCombiner() func(destination VertexID, messages []Message) ([]Message, error)
 	GetAggregators() []Aggregator
 }

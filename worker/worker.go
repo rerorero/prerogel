@@ -8,7 +8,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/command"
@@ -33,7 +33,7 @@ type workerActor struct {
 	ackRecorder           *util.AckRecorder
 	combinedMessagesAck   *util.AckRecorder
 	ssMessageBuf          *superStepMsgBuf
-	aggregatedCurrentStep map[string]*any.Any
+	aggregatedCurrentStep map[string]*types.Any
 }
 
 // NewWorkerActor returns a new actor instance
@@ -128,7 +128,7 @@ func (state *workerActor) idle(context actor.Context) {
 		state.ssMessageBuf.clear()
 		state.broadcastToPartitions(context, cmd)
 		state.resetAckRecorder()
-		state.aggregatedCurrentStep = make(map[string]*any.Any)
+		state.aggregatedCurrentStep = make(map[string]*types.Any)
 		state.combinedMessagesAck.Clear()
 		state.behavior.Become(state.waitSuperStepBarrierAck)
 		state.ActorUtil.LogDebug(context, "become waitSuperStepBarrierAck")

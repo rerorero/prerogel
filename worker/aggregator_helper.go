@@ -3,12 +3,12 @@ package worker
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/plugin"
 )
 
-func aggregateValueMap(aggregators []plugin.Aggregator, base map[string]*any.Any, extra map[string]*any.Any) error {
+func aggregateValueMap(aggregators []plugin.Aggregator, base map[string]*types.Any, extra map[string]*types.Any) error {
 	// TODO: there is still room for improvement
 	for name, extraAny := range extra {
 		baseAny, ok := base[name]
@@ -57,7 +57,7 @@ func findAggregator(aggregators []plugin.Aggregator, name string) (plugin.Aggreg
 	return nil, fmt.Errorf("%s: no such aggregator", name)
 }
 
-func getAggregatedValue(aggregators []plugin.Aggregator, aggregated map[string]*any.Any, name string) (plugin.AggregatableValue, error) {
+func getAggregatedValue(aggregators []plugin.Aggregator, aggregated map[string]*types.Any, name string) (plugin.AggregatableValue, error) {
 	ag, err := findAggregator(aggregators, name)
 	if err != nil {
 		return nil, err

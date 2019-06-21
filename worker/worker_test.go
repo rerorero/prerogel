@@ -10,9 +10,8 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/command"
 	"github.com/rerorero/prerogel/plugin"
@@ -100,10 +99,10 @@ func Test_superStepMsgBuf_add_remove(t *testing.T) {
 
 func Test_superStepMsgBuf_combine(t *testing.T) {
 	buf := newSuperStepMsgBuf(&MockedPlugin{
-		MarshalMessageMock: func(msg plugin.Message) (*any.Any, error) {
+		MarshalMessageMock: func(msg plugin.Message) (*types.Any, error) {
 			return anyOf(msg.(string)), nil
 		},
-		UnmarshalMessageMock: func(a *any.Any) (plugin.Message, error) {
+		UnmarshalMessageMock: func(a *types.Any) (plugin.Message, error) {
 			return string(a.Value), nil
 		},
 		GetCombinerMock: func() func(plugin.VertexID, []plugin.Message) ([]plugin.Message, error) {
@@ -183,17 +182,30 @@ func Test_superStepMsgBuf_combine(t *testing.T) {
 		plugin.VertexID("d3"): {m6},
 	}
 
-	ignoreFields := cmpopts.IgnoreFields(command.SuperStepMessage{}, "Uuid")
-	if diff := cmp.Diff(expected, buf.buf, ignoreFields); diff != "" {
-		t.Fatalf("not match: %s", diff)
+	if len(expected) != len(buf.buf) {
+		t.Fatal("unexpected len")
 	}
-	if buf.numOfMessage() != 3 {
-		t.Fatal("unexpected number")
+	for k, e := range expected {
+		actual := buf.buf[k]
+		for i, ex := range e {
+			if diff := cmp.Diff(ex.SuperStep, actual[i].SuperStep); diff != "" {
+				t.Fatalf("not match: %s", diff)
+			}
+			if diff := cmp.Diff(ex.Message, actual[i].Message); diff != "" {
+				t.Fatalf("not match: %s", diff)
+			}
+			if diff := cmp.Diff(ex.DestVertexId, actual[i].DestVertexId); diff != "" {
+				t.Fatalf("not match: %s", diff)
+			}
+			if diff := cmp.Diff(ex.SrcVertexId, actual[i].SrcVertexId); diff != "" {
+				t.Fatalf("not match: %s", diff)
+			}
+		}
 	}
 }
 
-func anyOf(s string) *any.Any {
-	return &any.Any{
+func anyOf(s string) *types.Any {
+	return &types.Any{
 		Value: []byte(s),
 	}
 }
@@ -217,10 +229,10 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 			}
 			return uint64(i), nil
 		},
-		MarshalMessageMock: func(msg plugin.Message) (*any.Any, error) {
-			return msg.(*any.Any), nil
+		MarshalMessageMock: func(msg plugin.Message) (*types.Any, error) {
+			return msg.(*types.Any), nil
 		},
-		UnmarshalMessageMock: func(a *any.Any) (plugin.Message, error) {
+		UnmarshalMessageMock: func(a *types.Any) (plugin.Message, error) {
 			return a, nil
 		},
 		GetCombinerMock: func() func(plugin.VertexID, []plugin.Message) ([]plugin.Message, error) {

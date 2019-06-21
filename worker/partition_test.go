@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rerorero/prerogel/command"
 	"github.com/rerorero/prerogel/plugin"
@@ -121,7 +121,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 				&command.SuperStepBarrierPartitionAck{PartitionId: 123},
 				&command.ComputePartitionAck{
 					PartitionId:      123,
-					AggregatedValues: make(map[string]*any.Any),
+					AggregatedValues: make(map[string]*types.Any),
 				},
 			},
 			wantInitializedVertex: []string{"test1", "test2", "test3"},

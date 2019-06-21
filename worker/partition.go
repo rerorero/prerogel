@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/rerorero/prerogel/command"
 	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
@@ -19,7 +19,7 @@ type partitionActor struct {
 	vertices              map[plugin.VertexID]*actor.PID
 	vertexProps           *actor.Props
 	ackRecorder           *util.AckRecorder
-	aggregatedCurrentStep map[string]*any.Any
+	aggregatedCurrentStep map[string]*types.Any
 }
 
 // NewPartitionActor returns an actor instance
@@ -91,7 +91,7 @@ func (state *partitionActor) idle(context actor.Context) {
 		state.resetAckRecorder()
 		state.broadcastToVertices(context, cmd)
 		state.behavior.Become(state.waitSuperStepBarrierAck)
-		state.aggregatedCurrentStep = make(map[string]*any.Any)
+		state.aggregatedCurrentStep = make(map[string]*types.Any)
 		return
 	default:
 		state.ActorUtil.Fail(context, fmt.Errorf("[idle] unhandled partition command: command=%#v", cmd))

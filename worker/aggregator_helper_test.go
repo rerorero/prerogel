@@ -3,7 +3,7 @@ package worker
 import (
 	"testing"
 
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/rerorero/prerogel/plugin"
 )
@@ -11,29 +11,29 @@ import (
 func Test_aggregateValueMap(t *testing.T) {
 	type args struct {
 		aggregators []plugin.Aggregator
-		base        map[string]*any.Any
-		extra       map[string]*any.Any
+		base        map[string]*types.Any
+		extra       map[string]*types.Any
 	}
 	tests := []struct {
 		name     string
 		args     args
 		wantErr  bool
-		wantBase map[string]*any.Any
+		wantBase map[string]*types.Any
 	}{
 		{
 			name: "aggregate",
 			args: args{
 				aggregators: aggregators,
-				base: map[string]*any.Any{
+				base: map[string]*types.Any{
 					"concat": {Value: []byte("AA")},
 				},
-				extra: map[string]*any.Any{
+				extra: map[string]*types.Any{
 					"concat": {Value: []byte("BB")},
 					"sum":    {Value: []byte{uint8(3)}},
 				},
 			},
 			wantErr: false,
-			wantBase: map[string]*any.Any{
+			wantBase: map[string]*types.Any{
 				"concat": {Value: []byte("AABB")},
 				"sum":    {Value: []byte{uint8(3)}},
 			},
@@ -42,13 +42,13 @@ func Test_aggregateValueMap(t *testing.T) {
 			name: "nil extra",
 			args: args{
 				aggregators: aggregators,
-				base: map[string]*any.Any{
+				base: map[string]*types.Any{
 					"concat": {Value: []byte("AA")},
 				},
 				extra: nil,
 			},
 			wantErr: false,
-			wantBase: map[string]*any.Any{
+			wantBase: map[string]*types.Any{
 				"concat": {Value: []byte("AA")},
 			},
 		},
@@ -56,15 +56,15 @@ func Test_aggregateValueMap(t *testing.T) {
 			name: "unknown",
 			args: args{
 				aggregators: aggregators,
-				base: map[string]*any.Any{
+				base: map[string]*types.Any{
 					"foo": {Value: []byte("AA")},
 				},
-				extra: map[string]*any.Any{
+				extra: map[string]*types.Any{
 					"foo": {Value: []byte{uint8(3)}},
 				},
 			},
 			wantErr: true,
-			wantBase: map[string]*any.Any{
+			wantBase: map[string]*types.Any{
 				"foo": {Value: []byte("AA")},
 			},
 		},

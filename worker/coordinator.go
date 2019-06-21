@@ -6,7 +6,7 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/aggregator"
 	"github.com/rerorero/prerogel/command"
@@ -17,7 +17,7 @@ import (
 
 type lastAggregated struct {
 	superstep uint64
-	values    map[string]*any.Any
+	values    map[string]*types.Any
 }
 
 type coordinatorActor struct {
@@ -27,7 +27,7 @@ type coordinatorActor struct {
 	workerProps           *actor.Props
 	clusterInfo           *command.ClusterInfo
 	ackRecorder           *util.AckRecorder
-	aggregatedCurrentStep map[string]*any.Any
+	aggregatedCurrentStep map[string]*types.Any
 	lastAggregatedValue   lastAggregated
 	currentStep           uint64
 }
@@ -133,7 +133,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		}
 		if state.ackRecorder.HasCompleted() {
 			state.ackRecorder.Clear()
-			state.aggregatedCurrentStep = make(map[string]*any.Any)
+			state.aggregatedCurrentStep = make(map[string]*types.Any)
 			state.currentStep = 0
 			for _, wi := range state.clusterInfo.WorkerInfo {
 				context.Request(wi.WorkerPid, &command.SuperStepBarrier{
@@ -227,7 +227,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 			// update aggregated values
 			state.lastAggregatedValue.superstep = state.currentStep
 			state.lastAggregatedValue.values = state.aggregatedCurrentStep
-			state.aggregatedCurrentStep = make(map[string]*any.Any)
+			state.aggregatedCurrentStep = make(map[string]*types.Any)
 		}
 		return
 
@@ -237,7 +237,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 	}
 }
 
-func (state *coordinatorActor) getStats(aggregated map[string]*any.Any) (*aggregator.VertexStats, error) {
+func (state *coordinatorActor) getStats(aggregated map[string]*types.Any) (*aggregator.VertexStats, error) {
 	v, err := getAggregatedValue(state.plugin.GetAggregators(), aggregated, aggregator.VertexStatsName)
 	if err != nil {
 		return nil, err

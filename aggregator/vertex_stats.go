@@ -3,8 +3,7 @@ package aggregator
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/types"
 	"github.com/rerorero/prerogel/plugin"
 )
 
@@ -39,19 +38,19 @@ func (s *VertexStatsAggregator) Aggregate(v1 plugin.AggregatableValue, v2 plugin
 	}, nil
 }
 
-// MarshalValue converts AggregatableValue into any.Any
-func (s *VertexStatsAggregator) MarshalValue(v plugin.AggregatableValue) (*any.Any, error) {
+// MarshalValue converts AggregatableValue into types.Any
+func (s *VertexStatsAggregator) MarshalValue(v plugin.AggregatableValue) (*types.Any, error) {
 	pb, ok := v.(*VertexStats)
 	if !ok {
 		return nil, fmt.Errorf("unknown aggregatable value: %#v", v)
 	}
-	return ptypes.MarshalAny(pb)
+	return types.MarshalAny(pb)
 }
 
-// UnmarshalValue converts any.Any to AggregatableValue
-func (s *VertexStatsAggregator) UnmarshalValue(pb *any.Any) (plugin.AggregatableValue, error) {
+// UnmarshalValue converts types.Any to AggregatableValue
+func (s *VertexStatsAggregator) UnmarshalValue(pb *types.Any) (plugin.AggregatableValue, error) {
 	var stats VertexStats
-	if err := ptypes.UnmarshalAny(pb, &stats); err != nil {
+	if err := types.UnmarshalAny(pb, &stats); err != nil {
 		return nil, err
 	}
 	return &stats, nil
