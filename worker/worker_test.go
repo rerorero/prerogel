@@ -320,7 +320,8 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	// move state forward
 	called = 0
 	if _, err := proxy.SendAndAwait(context, &command.InitWorker{
-		Partitions: partitions,
+		Coordinator: proxy.ProxyPID(),
+		Partitions:  partitions,
 	}, &command.InitWorkerAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}

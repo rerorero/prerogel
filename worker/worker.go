@@ -24,6 +24,7 @@ type superStepMsgBuf struct {
 
 type workerActor struct {
 	util.ActorUtil
+	coordinatorPID        *actor.PID
 	behavior              actor.Behavior
 	plugin                plugin.Plugin
 	partitions            map[uint64]*actor.PID
@@ -68,11 +69,10 @@ func (state *workerActor) Receive(context actor.Context) {
 func (state *workerActor) waitInit(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.InitWorker:
-		state.ActorUtil.AppendLoggerField("worker_id", context.Self().GetId())
-
+		state.coordinatorPID = cmd.Coordinator
 		for _, partition := range cmd.Partitions {
 			if _, ok := state.partitions[partition]; ok {
-				state.ActorUtil.LogWarn(fmt.Sprintf("partition=%v has already created", partition))
+				state.ActorUtil.LogWarn(context, fmt.Sprintf("partition=%v has already created", partition))
 				continue
 			}
 
@@ -84,11 +84,11 @@ func (state *workerActor) waitInit(context actor.Context) {
 		}
 		state.resetAckRecorder()
 		state.behavior.Become(state.waitPartitionInitAck)
-		state.ActorUtil.LogDebug("become waitPartitionInitAck")
+		state.ActorUtil.LogDebug(context, "become waitPartitionInitAck")
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled worker command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[waitInit] unhandled worker command: command=%#v", cmd))
 		return
 	}
 }
@@ -96,20 +96,21 @@ func (state *workerActor) waitInit(context actor.Context) {
 func (state *workerActor) waitPartitionInitAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.InitPartitionAck:
+		state.ActorUtil.LogDebug(context, fmt.Sprintf("partitionInitAck from id=%v", cmd.PartitionId))
 		if !state.ackRecorder.Ack(strconv.FormatUint(cmd.PartitionId, 10)) {
-			state.ActorUtil.LogWarn(fmt.Sprintf("InitPartitionAck duplicated: id=%v", cmd.PartitionId))
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("InitPartitionAck duplicated: id=%v", cmd.PartitionId))
 		}
 		if state.ackRecorder.HasCompleted() {
-			context.Send(context.Parent(), &command.InitWorkerAck{
+			context.Send(state.coordinatorPID, &command.InitWorkerAck{
 				WorkerPid: context.Self(),
 			})
 			state.resetAckRecorder()
 			state.behavior.Become(state.idle)
-			state.ActorUtil.LogDebug("become superstep")
+			state.ActorUtil.LogDebug(context, "become superstep")
 		}
 		return
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitPartitionInitÅck] unhandled worker command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[waitPartitionInitÅck] unhandled worker command: command=%#v", cmd))
 		return
 	}
 }
@@ -117,12 +118,12 @@ func (state *workerActor) waitPartitionInitAck(context actor.Context) {
 func (state *workerActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrier:
+		state.ActorUtil.LogDebug(context, "super step barrier")
 		if err := state.checkClusterInfo(cmd.ClusterInfo, context.Self()); err != nil {
-			state.ActorUtil.Fail(err)
+			state.ActorUtil.Fail(context, err)
 			return
 		}
 		state.clusterInfo = cmd.ClusterInfo
-		state.ActorUtil.AppendLoggerField("worker_id", context.Self().GetId())
 		state.clusterInfo = cmd.ClusterInfo
 		state.ssMessageBuf.clear()
 		state.broadcastToPartitions(context, cmd)
@@ -130,6 +131,7 @@ func (state *workerActor) idle(context actor.Context) {
 		state.aggregatedCurrentStep = make(map[string]*any.Any)
 		state.combinedMessagesAck.Clear()
 		state.behavior.Become(state.waitSuperStepBarrierAck)
+		state.ActorUtil.LogDebug(context, "become waitSuperStepBarrierAck")
 		return
 
 	case *command.SuperStepMessage:
@@ -138,7 +140,7 @@ func (state *workerActor) idle(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled worker command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[idle] unhandled worker command: command=%#v", cmd))
 		return
 	}
 }
@@ -146,20 +148,21 @@ func (state *workerActor) idle(context actor.Context) {
 func (state *workerActor) waitSuperStepBarrierAck(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrierPartitionAck:
+		state.ActorUtil.LogDebug(context, fmt.Sprintf("super step barrier partition ack: id=%v", cmd.PartitionId))
 		if !state.ackRecorder.Ack(strconv.FormatUint(cmd.PartitionId, 10)) {
-			state.ActorUtil.LogWarn(fmt.Sprintf("SuperStepBarrierAck duplicated: id=%v", cmd.PartitionId))
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("SuperStepBarrierAck duplicated: id=%v", cmd.PartitionId))
 		}
 		if state.ackRecorder.HasCompleted() {
-			context.Send(context.Parent(), &command.SuperStepBarrierWorkerAck{
+			context.Send(state.coordinatorPID, &command.SuperStepBarrierWorkerAck{
 				WorkerPid: context.Self(),
 			})
 			state.resetAckRecorder()
 			state.behavior.Become(state.superstep)
-			state.ActorUtil.LogInfo("super step barrier has completed for worker")
+			state.ActorUtil.LogInfo(context, "super step barrier has completed for worker")
 		}
 		return
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitSpuerStepBarrierAck] unhandled partition command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[waitSpuerStepBarrierAck] unhandled partition command: command=%#v", cmd))
 		return
 	}
 }
@@ -175,23 +178,23 @@ func (state *workerActor) superstep(context actor.Context) {
 		// TODO: aggregate halted status
 		if cmd.AggregatedValues != nil {
 			if err := aggregateValueMap(state.plugin.GetAggregators(), state.aggregatedCurrentStep, cmd.AggregatedValues); err != nil {
-				state.ActorUtil.Fail(err)
+				state.ActorUtil.Fail(context, err)
 				return
 			}
 		}
 		if !state.ackRecorder.Ack(strconv.FormatUint(cmd.PartitionId, 10)) {
-			state.ActorUtil.LogWarn(fmt.Sprintf("ComputeAck duplicated: id=%v", cmd.PartitionId))
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("ComputeAck duplicated: id=%v", cmd.PartitionId))
 		}
 		if state.ackRecorder.HasCompleted() {
 			if state.ssMessageBuf.numOfMessage() > 0 {
 				if err := state.ssMessageBuf.combine(); err != nil {
-					state.ActorUtil.LogError(fmt.Sprintf("failed to combine: %v", err))
+					state.ActorUtil.LogError(context, fmt.Sprintf("failed to combine: %v", err))
 				}
 				// TODO: it can reduce messages by aggregating by each destination worker
 				for dest, msgs := range state.ssMessageBuf.buf {
-					destWorker := state.findWorkerInfoByVertex(dest)
+					destWorker := state.findWorkerInfoByVertex(context, dest)
 					if destWorker == nil || destWorker.WorkerPid.GetId() == context.Self().GetId() {
-						state.ActorUtil.Fail(fmt.Errorf("failed to find worker: %v", dest))
+						state.ActorUtil.Fail(context, fmt.Errorf("failed to find worker: %v", dest))
 						return
 					}
 					for _, m := range msgs {
@@ -218,22 +221,22 @@ func (state *workerActor) superstep(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled worker command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[superstep] unhandled worker command: command=%#v", cmd))
 		return
 	}
 }
 
 func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *command.SuperStepMessage) {
-	srcWorker := state.findWorkerInfoByVertex(plugin.VertexID(cmd.SrcVertexId))
+	srcWorker := state.findWorkerInfoByVertex(context, plugin.VertexID(cmd.SrcVertexId))
 	if srcWorker == nil {
-		state.ActorUtil.LogError(fmt.Sprintf("[superstep] message from unknown worker: command=%#v", cmd))
+		state.ActorUtil.LogError(context, fmt.Sprintf("[superstep] message from unknown worker: command=%#v", cmd))
 		return
 	}
 
 	if srcWorker.WorkerPid.GetId() == context.Self().GetId() {
 		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.DestVertexId), state.numOfPartitions())
 		if err != nil {
-			state.ActorUtil.Fail(fmt.Errorf("failed to find partition for message: %#v", cmd))
+			state.ActorUtil.Fail(context, fmt.Errorf("failed to find partition for message: %#v", cmd))
 			return
 		}
 
@@ -254,12 +257,12 @@ func (state *workerActor) handleSuperStepMessage(context actor.Context, cmd *com
 		// when sent from other worker, route it to vertex
 		p, err := state.plugin.Partition(plugin.VertexID(cmd.DestVertexId), state.numOfPartitions())
 		if err != nil {
-			state.ActorUtil.Fail(errors.Wrap(err, "failed to Partition()"))
+			state.ActorUtil.Fail(context, errors.Wrap(err, "failed to Partition()"))
 			return
 		}
 		pid, ok := state.partitions[p]
 		if !ok {
-			state.ActorUtil.Fail(fmt.Errorf("[superstep] destination partition(%v) is not found: command=%#v", p, cmd))
+			state.ActorUtil.Fail(context, fmt.Errorf("[superstep] destination partition(%v) is not found: command=%#v", p, cmd))
 			return
 		}
 		context.Forward(pid)
@@ -301,7 +304,7 @@ func (state *workerActor) numOfPartitions() uint64 {
 }
 
 func (state *workerActor) broadcastToPartitions(context actor.Context, msg proto.Message) {
-	state.LogDebug(fmt.Sprintf("broadcast %#v", msg))
+	state.LogDebug(context, fmt.Sprintf("broadcast %#v", msg))
 	for _, pid := range state.partitions {
 		context.Request(pid, msg)
 	}
@@ -314,10 +317,10 @@ func (state *workerActor) resetAckRecorder() {
 	}
 }
 
-func (state *workerActor) findWorkerInfoByVertex(vid plugin.VertexID) *command.ClusterInfo_WorkerInfo {
+func (state *workerActor) findWorkerInfoByVertex(context actor.Context, vid plugin.VertexID) *command.ClusterInfo_WorkerInfo {
 	p, err := state.plugin.Partition(vid, state.numOfPartitions())
 	if err != nil {
-		state.ActorUtil.LogError(fmt.Sprintf("failed to Partition(): %v", err))
+		state.ActorUtil.LogError(context, fmt.Sprintf("failed to Partition(): %v", err))
 		return nil
 	}
 	return state.findWorkerInfoByPartition(p)
@@ -335,14 +338,14 @@ func (state *workerActor) findWorkerInfoByPartition(partitionID uint64) *command
 }
 
 func (state *workerActor) computeAckAndBecomeIdle(context actor.Context) {
-	context.Send(context.Parent(), &command.ComputeWorkerAck{
+	context.Send(state.coordinatorPID, &command.ComputeWorkerAck{
 		WorkerPid:        context.Self(),
 		AggregatedValues: state.aggregatedCurrentStep,
 	})
 	state.aggregatedCurrentStep = nil
 	state.resetAckRecorder()
 	state.behavior.Become(state.idle)
-	state.ActorUtil.LogInfo("compute has completed for worker")
+	state.ActorUtil.LogInfo(context, "compute has completed for worker")
 }
 
 // newSuperStepMsgBuf creates a new super step message buffer instance

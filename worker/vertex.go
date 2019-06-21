@@ -50,7 +50,7 @@ func (c *computeContextImpl) ReceivedMessages() []plugin.Message {
 func (c *computeContextImpl) SendMessageTo(dest plugin.VertexID, m plugin.Message) error {
 	pb, err := c.vertexActor.plugin.MarshalMessage(m)
 	if err != nil {
-		c.vertexActor.ActorUtil.LogError(fmt.Sprintf("failed to marshal message: id=%v, message=%#v", c.vertexActor.vertex.GetID(), m))
+		c.vertexActor.ActorUtil.LogError(c.ctx, fmt.Sprintf("failed to marshal message: id=%v, message=%#v", c.vertexActor.vertex.GetID(), m))
 		return err
 	}
 	messageID := uuid.New().String()
@@ -63,14 +63,14 @@ func (c *computeContextImpl) SendMessageTo(dest plugin.VertexID, m plugin.Messag
 	})
 
 	if !c.vertexActor.ackRecorder.AddToWaitList(messageID) {
-		c.vertexActor.ActorUtil.LogWarn(fmt.Sprintf("duplicate superstep message: from=%v to=%v", c.vertexActor.vertex.GetID(), dest))
+		c.vertexActor.ActorUtil.LogWarn(c.ctx, fmt.Sprintf("duplicate superstep message: from=%v to=%v", c.vertexActor.vertex.GetID(), dest))
 	}
 
 	return nil
 }
 
 func (c *computeContextImpl) VoteToHalt() {
-	c.vertexActor.ActorUtil.LogDebug("halted by user")
+	c.vertexActor.ActorUtil.LogDebug(c.ctx, "halted by user")
 	c.vertexActor.halted = true
 }
 
@@ -151,27 +151,26 @@ func (state *vertexActor) waitInit(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.LoadVertex:
 		if state.vertex != nil {
-			state.ActorUtil.Fail(errors.New("vertex has already initialized"))
+			state.ActorUtil.Fail(context, errors.New("vertex has already initialized"))
 			return
 		}
 		vert, err := state.plugin.NewVertex(plugin.VertexID(cmd.VertexId))
 		if err != nil {
-			state.ActorUtil.Fail(errors.New("failed to NewVertex"))
+			state.ActorUtil.Fail(context, errors.New("failed to NewVertex"))
 			return
 		}
 		state.vertex = vert
 		state.partitionID = cmd.PartitionId
-		state.ActorUtil.AppendLoggerField("vertexId", state.vertex.GetID())
 		context.Respond(&command.LoadVertexAck{
 			PartitionId: cmd.PartitionId,
 			VertexId:    string(state.vertex.GetID()),
 		})
 		state.behavior.Become(state.superstep)
-		state.ActorUtil.LogDebug("vertex has initialized")
+		state.ActorUtil.LogDebug(context, "vertex has initialized")
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[waitInit] unhandled vertex command: command=%#v(%v)", cmd, reflect.TypeOf(cmd)))
+		state.ActorUtil.Fail(context, fmt.Errorf("[waitInit] unhandled vertex command: command=%#v(%v)", cmd, reflect.TypeOf(cmd)))
 		return
 	}
 }
@@ -185,7 +184,7 @@ func (state *vertexActor) superstep(context actor.Context) {
 		context.Respond(&command.SuperStepBarrierAck{
 			VertexId: string(state.vertex.GetID()),
 		})
-		state.ActorUtil.LogDebug(fmt.Sprintf("received barrier message"))
+		state.ActorUtil.LogDebug(context, fmt.Sprintf("received barrier message"))
 		return
 
 	case *command.Compute:
@@ -195,13 +194,13 @@ func (state *vertexActor) superstep(context actor.Context) {
 
 	case *command.SuperStepMessage:
 		if state.vertex.GetID() != plugin.VertexID(cmd.DestVertexId) {
-			state.ActorUtil.Fail(fmt.Errorf("inconsistent vertex id: %#v", *cmd))
+			state.ActorUtil.Fail(context, fmt.Errorf("inconsistent vertex id: %#v", *cmd))
 			return
 		}
 		// TODO: verify cmd.SuperStep
 		pb, err := state.plugin.UnmarshalMessage(cmd.Message)
 		if err != nil {
-			state.ActorUtil.Fail(fmt.Errorf("failed to unmarshal message: %#v", *cmd))
+			state.ActorUtil.Fail(context, fmt.Errorf("failed to unmarshal message: %#v", *cmd))
 			return
 		}
 		state.messageQueue = append(state.messageQueue, pb)
@@ -213,11 +212,11 @@ func (state *vertexActor) superstep(context actor.Context) {
 
 	case *command.SuperStepMessageAck:
 		if state.ackRecorder.HasCompleted() {
-			state.ActorUtil.LogWarn(fmt.Sprintf("unhaneled message id=%v, compute() has already completed", cmd.Uuid))
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("unhaneled message id=%v, compute() has already completed", cmd.Uuid))
 			return
 		}
 		if !state.ackRecorder.Ack(cmd.Uuid) {
-			state.ActorUtil.LogWarn(fmt.Sprintf("duplicated or unhaneled message: uuid=%v", cmd.Uuid))
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("duplicated or unhaneled message: uuid=%v", cmd.Uuid))
 		}
 		if state.ackRecorder.HasCompleted() {
 			state.respondComputeAck(context)
@@ -225,7 +224,7 @@ func (state *vertexActor) superstep(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled vertex command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[superstep] unhandled vertex command: command=%#v", cmd))
 		return
 	}
 }
@@ -239,7 +238,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 	if cmd.SuperStep == 0 {
 		state.halted = false
 	} else if len(state.prevStepMessages) == 0 {
-		state.ActorUtil.LogDebug("halted due to no message")
+		state.ActorUtil.LogDebug(ctx, "halted due to no message")
 		state.halted = true
 	}
 
@@ -260,7 +259,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 		aggregatedPrevStep: cmd.AggregatedValues,
 	}
 	if err := state.vertex.Compute(computeContext); err != nil {
-		state.ActorUtil.Fail(errors.Wrap(err, "failed to compute"))
+		state.ActorUtil.Fail(ctx, errors.Wrap(err, "failed to compute"))
 		return
 	}
 	state.statsMessageSent = uint64(state.ackRecorder.Size())
@@ -284,7 +283,7 @@ func (state *vertexActor) respondComputeAck(ctx actor.Context) {
 			MessagesSent:   state.statsMessageSent,
 		})
 		if err == nil {
-			state.ActorUtil.LogError(fmt.Sprintf("failed to marshal stats: %v", err))
+			state.ActorUtil.LogError(ctx, fmt.Sprintf("failed to marshal stats: %v", err))
 		} else {
 			state.aggregatedCurrentStep[aggregator.VertexStatsName] = pb
 		}
@@ -298,5 +297,5 @@ func (state *vertexActor) respondComputeAck(ctx actor.Context) {
 		AggregatedValues: state.aggregatedCurrentStep,
 	})
 	state.aggregatedCurrentStep = nil
-	state.ActorUtil.LogDebug("compute() completed")
+	state.ActorUtil.LogDebug(ctx, "compute() completed")
 }

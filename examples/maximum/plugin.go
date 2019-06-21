@@ -1,12 +1,11 @@
-package maximum
+package main
 
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
-	"github.com/rerorero/prerogel/examples/plugins/maximum/loader"
-
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/pkg/errors"
+	"github.com/rerorero/prerogel/examples/maximum/loader"
 	"github.com/rerorero/prerogel/plugin"
 )
 

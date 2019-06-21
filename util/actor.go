@@ -11,35 +11,32 @@ type ActorUtil struct {
 }
 
 // Fail crashes actor
-func (u *ActorUtil) Fail(err error) {
-	u.Logger.WithError(err).Error(err.Error())
+func (u *ActorUtil) Fail(ctx actor.Context, err error) {
+	u.Logger.WithError(err).
+		WithField("actor", ctx.Self().Id).
+		Error(err.Error())
 	// let it crash
 	panic(err)
 }
 
 // LogError logs error level message
-func (u *ActorUtil) LogError(msg string) {
-	u.Logger.Error(msg)
+func (u *ActorUtil) LogError(ctx actor.Context, msg string) {
+	u.Logger.WithField("actor", ctx.Self().Id).Error(msg)
 }
 
 // LogWarn logs warn level message
-func (u *ActorUtil) LogWarn(msg string) {
-	u.Logger.Warn(msg)
+func (u *ActorUtil) LogWarn(ctx actor.Context, msg string) {
+	u.Logger.WithField("actor", ctx.Self().Id).Warn(msg)
 }
 
 // LogInfo logs info level message
-func (u *ActorUtil) LogInfo(msg string) {
-	u.Logger.Info(msg)
+func (u *ActorUtil) LogInfo(ctx actor.Context, msg string) {
+	u.Logger.WithField("actor", ctx.Self().Id).Info(msg)
 }
 
 // LogDebug logs debug level message
-func (u *ActorUtil) LogDebug(msg string) {
-	u.Logger.Debug(msg)
-}
-
-// AppendLoggerField appends a field to logger
-func (u *ActorUtil) AppendLoggerField(key string, value interface{}) {
-	u.Logger = u.Logger.WithField(key, value).Logger
+func (u *ActorUtil) LogDebug(ctx actor.Context, msg string) {
+	u.Logger.WithField("actor", ctx.Self().Id).Debug(msg)
 }
 
 // IsSystemMessage returns if message is SystemMessage

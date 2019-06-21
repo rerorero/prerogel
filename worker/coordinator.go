@@ -61,7 +61,7 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 		if state.lastAggregatedValue.values != nil {
 			stats, err := state.getStats(state.lastAggregatedValue.values)
 			if err != nil {
-				state.ActorUtil.Fail(err)
+				state.ActorUtil.Fail(context, err)
 				return
 			}
 			s.SuperStep = state.lastAggregatedValue.superstep
@@ -80,13 +80,13 @@ func (state *coordinatorActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.NewCluster:
 		if state.clusterInfo != nil {
-			state.ActorUtil.Fail(fmt.Errorf("cluster info has already been set: %+v", state.clusterInfo))
+			state.ActorUtil.Fail(context, fmt.Errorf("cluster info has already been set: %+v", state.clusterInfo))
 			return
 		}
 
 		assigned, err := assignPartition(len(cmd.Workers), cmd.NrOfPartitions)
 		if err != nil {
-			state.ActorUtil.Fail(err)
+			state.ActorUtil.Fail(context, err)
 			return
 		}
 		state.ackRecorder.Clear()
@@ -100,7 +100,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 				// remote actor
 				pidRes, err := remote.SpawnNamed(wreq.HostAndPort, fmt.Sprintf("%s-%d", WorkerActorKind, i), WorkerActorKind, 30*time.Second)
 				if err != nil {
-					state.ActorUtil.Fail(errors.Wrapf(err, "failed to spawn remote actor: code=%v", pidRes.StatusCode))
+					state.ActorUtil.Fail(context, errors.Wrapf(err, "failed to spawn remote actor: code=%v", pidRes.StatusCode))
 					return
 				}
 				pid = pidRes.Pid
@@ -110,7 +110,8 @@ func (state *coordinatorActor) idle(context actor.Context) {
 			}
 
 			context.Request(pid, &command.InitWorker{
-				Partitions: assigned[i],
+				Coordinator: context.Self(),
+				Partitions:  assigned[i],
 			})
 			state.ackRecorder.AddToWaitList(pid.GetId())
 			ci.WorkerInfo[i] = &command.ClusterInfo_WorkerInfo{
@@ -127,7 +128,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 
 	case *command.InitWorkerAck:
 		if ok := state.ackRecorder.Ack(cmd.WorkerPid.GetId()); !ok {
-			state.ActorUtil.LogError(fmt.Sprintf("InitWorkerAck from unknown worker: %v", cmd.WorkerPid))
+			state.ActorUtil.LogError(context, fmt.Sprintf("InitWorkerAck from unknown worker: %v", cmd.WorkerPid))
 			return
 		}
 		if state.ackRecorder.HasCompleted() {
@@ -147,7 +148,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[idle] unhandled corrdinator command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[idle] unhandled corrdinator command: command=%#v", cmd))
 		return
 	}
 }
@@ -156,7 +157,7 @@ func (state *coordinatorActor) superstep(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.SuperStepBarrierWorkerAck:
 		if ok := state.ackRecorder.Ack(cmd.WorkerPid.GetId()); !ok {
-			state.ActorUtil.LogError(fmt.Sprintf("superstep barrier ack from unknown worker: %v", cmd.WorkerPid))
+			state.ActorUtil.LogError(context, fmt.Sprintf("superstep barrier ack from unknown worker: %v", cmd.WorkerPid))
 			return
 		}
 		if state.ackRecorder.HasCompleted() {
@@ -174,7 +175,7 @@ func (state *coordinatorActor) superstep(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[superstep] unhandled corrdinator command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[superstep] unhandled corrdinator command: command=%#v", cmd))
 		return
 	}
 }
@@ -182,13 +183,13 @@ func (state *coordinatorActor) computing(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.ComputeWorkerAck:
 		if ok := state.ackRecorder.Ack(cmd.WorkerPid.GetId()); !ok {
-			state.ActorUtil.LogError(fmt.Sprintf("compute ack from unknown worker: %v", cmd.WorkerPid))
+			state.ActorUtil.LogError(context, fmt.Sprintf("compute ack from unknown worker: %v", cmd.WorkerPid))
 			return
 		}
 
 		if cmd.AggregatedValues != nil {
 			if err := aggregateValueMap(state.plugin.GetAggregators(), state.aggregatedCurrentStep, cmd.AggregatedValues); err != nil {
-				state.ActorUtil.Fail(err)
+				state.ActorUtil.Fail(context, err)
 				return
 			}
 		}
@@ -198,7 +199,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 			// check if there are active vertices
 			stats, err := state.getStats(state.aggregatedCurrentStep)
 			if err != nil {
-				state.ActorUtil.Fail(err)
+				state.ActorUtil.Fail(context, err)
 				return
 			}
 
@@ -231,7 +232,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 		return
 
 	default:
-		state.ActorUtil.Fail(fmt.Errorf("[computing] unhandled corrdinator command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[computing] unhandled corrdinator command: command=%#v", cmd))
 		return
 	}
 }

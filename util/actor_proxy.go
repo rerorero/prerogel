@@ -53,6 +53,11 @@ func (proxy *ActorProxy) Underlying() *actor.PID {
 	return proxy.underlying
 }
 
+// ProxyPID returns pid of proxy
+func (proxy *ActorProxy) ProxyPID() *actor.PID {
+	return proxy.parent
+}
+
 // SendAndAwait sends a request to underlying actor and wait for response
 func (proxy *ActorProxy) SendAndAwait(ctx actor.SenderContext, req proto.Message, resEmpty proto.Message, timeout time.Duration) (proto.Message, error) {
 	msg := &forward{req, resEmpty, make(chan proto.Message, 1)}

@@ -71,7 +71,8 @@ message ClusterInfo {
 }
 
 message InitWorker {
-    repeated uint64 partitions = 1;
+    actor.PID coordinator = 1;
+    repeated uint64 partitions = 2;
 }
 
 message InitWorkerAck {

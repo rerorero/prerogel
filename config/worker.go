@@ -55,11 +55,12 @@ func LoadWorkerConfFromEnv(prefix string) (interface{}, error) {
 
 // Logger returns logger
 func (cc *CommonConfig) Logger() *logrus.Logger {
+	logger := logrus.New()
 	lv, err := logrus.ParseLevel(cc.LogLevel)
 	if err != nil {
-		logrus.Warn(err)
+		logger.Warn(err)
 	} else {
-		logrus.SetLevel(lv)
+		logger.SetLevel(lv)
 	}
-	return logrus.New()
+	return logger
 }
