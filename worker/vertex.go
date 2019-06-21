@@ -160,10 +160,8 @@ func (state *vertexActor) waitInit(context actor.Context) {
 			return
 		}
 		state.vertex = vert
-		state.partitionID = cmd.PartitionId
 		context.Respond(&command.LoadVertexAck{
-			PartitionId: cmd.PartitionId,
-			VertexId:    string(state.vertex.GetID()),
+			VertexId: string(state.vertex.GetID()),
 		})
 		state.behavior.Become(state.superstep)
 		state.ActorUtil.LogDebug(context, "vertex has initialized")

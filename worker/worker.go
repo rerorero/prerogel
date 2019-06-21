@@ -76,7 +76,11 @@ func (state *workerActor) waitInit(context actor.Context) {
 				continue
 			}
 
-			pid := context.Spawn(state.partitionProps)
+			pid, error := context.SpawnNamed(state.partitionProps, fmt.Sprintf("p%v", partition))
+			if error != nil {
+				state.ActorUtil.Fail(context, errors.Wrapf(error, "spawn partition failed %v", partition))
+				return
+			}
 			state.partitions[partition] = pid
 			context.Request(pid, &command.InitPartition{
 				PartitionId: partition,

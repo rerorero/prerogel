@@ -74,7 +74,8 @@ func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) e
 		return fmt.Errorf("failed to initialize cooridnator: unknown ack %#v", res)
 	}
 
-	logger.Info(fmt.Sprintf("coordinator is running: addr=%s log=%s", conf.ListenAddress, logger.Level.String()))
+	logger.Info(fmt.Sprintf("coordinator is running: addr=%s partitions=%v workers=%s log=%s",
+		conf.ListenAddress, conf.Partitions, conf.WorkerAddresses, logger.Level.String()))
 
 	waitUntilDone(ctx)
 	return nil

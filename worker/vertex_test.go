@@ -41,14 +41,12 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			},
 			cmd: []proto.Message{
 				&command.LoadVertex{
-					VertexId:    "test-id",
-					PartitionId: 123,
+					VertexId: "test-id",
 				},
 			},
 			wantRespond: []proto.Message{
 				&command.LoadVertexAck{
-					VertexId:    "test-id",
-					PartitionId: 123,
+					VertexId: "test-id",
 				},
 			},
 			wantLoaded: 1,
@@ -64,15 +62,13 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			},
 			cmd: []proto.Message{
 				&command.LoadVertex{
-					VertexId:    "test-id",
-					PartitionId: 123,
+					VertexId: "test-id",
 				},
 				&command.LoadVertex{},
 			},
 			wantRespond: []proto.Message{
 				&command.LoadVertexAck{
-					VertexId:    "test-id",
-					PartitionId: 123,
+					VertexId: "test-id",
 				},
 				nil,
 			},
@@ -154,15 +150,14 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				},
 			},
 			cmd: []proto.Message{
-				&command.LoadVertex{VertexId: "test-id", PartitionId: 123},
+				&command.LoadVertex{VertexId: "test-id"},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 				&command.Compute{SuperStep: 1},
 			},
 			wantRespond: []proto.Message{
 				&command.LoadVertexAck{
-					PartitionId: 123,
-					VertexId:    "test-id",
+					VertexId: "test-id",
 				},
 				&command.SuperStepBarrierAck{
 					VertexId: string("test-id"),
@@ -201,7 +196,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
-				&command.LoadVertex{VertexId: "test-id", PartitionId: 123},
+				&command.LoadVertex{VertexId: "test-id"},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 				&command.SuperStepBarrier{},
@@ -213,7 +208,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				2: {msg1, msg2}, // sent between Compute(step0) and Compute(step1)
 			},
 			wantRespond: []proto.Message{
-				&command.LoadVertexAck{VertexId: "test-id", PartitionId: 123},
+				&command.LoadVertexAck{VertexId: "test-id"},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
 				&command.ComputeAck{VertexId: string("test-id"), Halted: false, AggregatedValues: make(map[string]*types.Any)},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
@@ -241,7 +236,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
-				&command.LoadVertex{VertexId: "test-id", PartitionId: 123},
+				&command.LoadVertex{VertexId: "test-id"},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 				&command.SuperStepBarrier{},
@@ -253,7 +248,7 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				2: {msg1}, // sent between Compute(step0) and Compute(step1)
 			},
 			wantRespond: []proto.Message{
-				&command.LoadVertexAck{VertexId: "test-id", PartitionId: 123},
+				&command.LoadVertexAck{VertexId: "test-id"},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
 				&command.ComputeAck{VertexId: string("test-id"), Halted: false, AggregatedValues: make(map[string]*types.Any)},
 				&command.SuperStepBarrierAck{VertexId: string("test-id")},
@@ -288,12 +283,12 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
-				&command.LoadVertex{VertexId: "test-id", PartitionId: 123},
+				&command.LoadVertex{VertexId: "test-id"},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 			},
 			wantRespond: []proto.Message{
-				&command.LoadVertexAck{VertexId: "test-id", PartitionId: 123},
+				&command.LoadVertexAck{VertexId: "test-id"},
 				&command.SuperStepBarrierAck{VertexId: "test-id"},
 				nil,
 			},

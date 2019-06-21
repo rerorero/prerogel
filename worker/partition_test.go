@@ -47,13 +47,9 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 					defer mockMux.Unlock()
 					switch cmd := c.Message().(type) {
 					case *command.LoadVertex:
-						if cmd.PartitionId != 123 {
-							t.Fatal("unexpected partition id")
-						}
 						initializedVertes = append(initializedVertes, cmd.VertexId)
 						c.Send(c.Parent(), &command.LoadVertexAck{
-							PartitionId: 123,
-							VertexId:    cmd.VertexId,
+							VertexId: cmd.VertexId,
 						})
 					case *command.SuperStepBarrier:
 						i := atomic.AddInt32(&barrierAckCount, 1)
@@ -65,16 +61,16 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 				&command.InitPartition{
 					PartitionId: 123,
 				},
-				&command.LoadVertex{PartitionId: 123, VertexId: "test1"},
-				&command.LoadVertex{PartitionId: 123, VertexId: "test2"},
-				&command.LoadVertex{PartitionId: 123, VertexId: "test3"},
+				&command.LoadVertex{VertexId: "test1"},
+				&command.LoadVertex{VertexId: "test2"},
+				&command.LoadVertex{VertexId: "test3"},
 				&command.SuperStepBarrier{},
 			},
 			wantRespond: []proto.Message{
 				&command.InitPartitionAck{PartitionId: 123},
-				&command.LoadVertexAck{PartitionId: 123, VertexId: "test1"},
-				&command.LoadVertexAck{PartitionId: 123, VertexId: "test2"},
-				&command.LoadVertexAck{PartitionId: 123, VertexId: "test3"},
+				&command.LoadVertexAck{VertexId: "test1"},
+				&command.LoadVertexAck{VertexId: "test2"},
+				&command.LoadVertexAck{VertexId: "test3"},
 				&command.SuperStepBarrierPartitionAck{PartitionId: 123},
 			},
 			wantInitializedVertex: []string{"test1", "test2", "test3"},
@@ -93,7 +89,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 					switch cmd := c.Message().(type) {
 					case *command.LoadVertex:
 						initializedVertes = append(initializedVertes, cmd.VertexId)
-						c.Send(c.Parent(), &command.LoadVertexAck{VertexId: cmd.VertexId, PartitionId: cmd.PartitionId})
+						c.Send(c.Parent(), &command.LoadVertexAck{VertexId: cmd.VertexId})
 					case *command.SuperStepBarrier:
 						c.Send(c.Parent(), &command.SuperStepBarrierAck{VertexId: initializedVertes[barrierAckCount]})
 						barrierAckCount++
@@ -107,17 +103,17 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 				&command.InitPartition{
 					PartitionId: 123,
 				},
-				&command.LoadVertex{PartitionId: 123, VertexId: "test1"},
-				&command.LoadVertex{PartitionId: 123, VertexId: "test2"},
-				&command.LoadVertex{PartitionId: 123, VertexId: "test3"},
+				&command.LoadVertex{VertexId: "test1"},
+				&command.LoadVertex{VertexId: "test2"},
+				&command.LoadVertex{VertexId: "test3"},
 				&command.SuperStepBarrier{},
 				&command.Compute{SuperStep: 0},
 			},
 			wantRespond: []proto.Message{
 				&command.InitPartitionAck{PartitionId: 123},
-				&command.LoadVertexAck{PartitionId: 123, VertexId: "test1"},
-				&command.LoadVertexAck{PartitionId: 123, VertexId: "test2"},
-				&command.LoadVertexAck{PartitionId: 123, VertexId: "test3"},
+				&command.LoadVertexAck{VertexId: "test1"},
+				&command.LoadVertexAck{VertexId: "test2"},
+				&command.LoadVertexAck{VertexId: "test3"},
 				&command.SuperStepBarrierPartitionAck{PartitionId: 123},
 				&command.ComputePartitionAck{
 					PartitionId:      123,
@@ -173,7 +169,7 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 	vertexProps := actor.PropsFromFunc(func(c actor.Context) {
 		switch cmd := c.Message().(type) {
 		case *command.LoadVertex:
-			c.Send(c.Parent(), &command.LoadVertexAck{VertexId: cmd.VertexId, PartitionId: cmd.PartitionId})
+			c.Send(c.Parent(), &command.LoadVertexAck{VertexId: cmd.VertexId})
 		case *command.SuperStepBarrier:
 			i := atomic.AddInt32(&called, 1)
 			c.Send(c.Parent(), &command.SuperStepBarrierAck{VertexId: string(vid[i-1])})
@@ -218,7 +214,7 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range vid {
-		if _, err := proxy.SendAndAwait(context, &command.LoadVertex{PartitionId: 123, VertexId: string(id)},
+		if _, err := proxy.SendAndAwait(context, &command.LoadVertex{VertexId: string(id)},
 			&command.LoadVertexAck{}, time.Second); err != nil {
 			t.Fatal(err)
 		}
