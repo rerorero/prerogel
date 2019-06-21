@@ -22,7 +22,6 @@ import (
 )
 
 func Test_vertexActor_Receive_InitVertex(t *testing.T) {
-	var loaded int
 	type fields struct {
 		vertex plugin.Vertex
 	}
@@ -37,10 +36,6 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			name: "should be initialized",
 			fields: fields{
 				vertex: &MockedVertex{
-					LoadMock: func() error {
-						loaded++
-						return nil
-					},
 					GetIDMock: func() plugin.VertexID {
 						return "test-id"
 					},
@@ -64,10 +59,6 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			name: "fails if already initialized",
 			fields: fields{
 				vertex: &MockedVertex{
-					LoadMock: func() error {
-						loaded++
-						return nil
-					},
 					GetIDMock: func() plugin.VertexID {
 						return "test-id"
 					},
@@ -89,43 +80,20 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 			},
 			wantLoaded: 1,
 		},
-		{
-			name: "fails to load",
-			fields: fields{
-				vertex: &MockedVertex{
-					LoadMock: func() error {
-						return errors.New("foo")
-					},
-					GetIDMock: func() plugin.VertexID {
-						return "test-id"
-					},
-				},
-			},
-			cmd: []proto.Message{
-				&command.LoadVertex{
-					VertexId:    "test-id",
-					PartitionId: 123,
-				},
-			},
-			wantRespond: []proto.Message{
-				nil,
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			loaded = 0
 			logger, _ := test.NewNullLogger()
 
 			context := actor.EmptyRootContext
 			props := actor.PropsFromProducer(func() actor.Actor {
 				return NewVertexActor(&MockedPlugin{
-					NewVertexMock: func(id plugin.VertexID) plugin.Vertex {
+					NewVertexMock: func(id plugin.VertexID) (plugin.Vertex, error) {
 						if id != "test-id" {
 							t.Fatal("unexpected vertex id")
 						}
-						return tt.fields.vertex
+						return tt.fields.vertex, nil
 					},
 				}, logger)
 			})
@@ -139,10 +107,6 @@ func Test_vertexActor_Receive_InitVertex(t *testing.T) {
 				if diff := cmp.Diff(tt.wantRespond[i], res); diff != "" {
 					t.Errorf("unexpected respond: %s", diff)
 				}
-			}
-
-			if loaded != tt.wantLoaded {
-				t.Errorf("unexpected loaded count: %d, %d", loaded, tt.wantLoaded)
 			}
 		})
 	}
@@ -185,9 +149,6 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 						t.Fatal("unexpected received messages")
 					}
 					computed++
-					return nil
-				},
-				LoadMock: func() error {
 					return nil
 				},
 				GetIDMock: func() plugin.VertexID {
@@ -239,9 +200,6 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 					computed++
 					return nil
 				},
-				LoadMock: func() error {
-					return nil
-				},
 				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
@@ -280,9 +238,6 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 						t.Fatal(err)
 					}
 					computed++
-					return nil
-				},
-				LoadMock: func() error {
 					return nil
 				},
 				GetIDMock: func() plugin.VertexID { return "test-id" },
@@ -332,9 +287,6 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				ComputeMock: func(ctx plugin.ComputeContext) error {
 					return errors.New("test")
 				},
-				LoadMock: func() error {
-					return nil
-				},
 				GetIDMock: func() plugin.VertexID { return "test-id" },
 			},
 			cmd: []proto.Message{
@@ -376,8 +328,8 @@ func Test_vertexActor_Receive_Compute(t *testing.T) {
 				case *actor.Started:
 					logger, _ := test.NewNullLogger()
 					plugin := &MockedPlugin{
-						NewVertexMock: func(id plugin.VertexID) plugin.Vertex {
-							return tt.vertex
+						NewVertexMock: func(id plugin.VertexID) (plugin.Vertex, error) {
+							return tt.vertex, nil
 						},
 						UnmarshalMessageMock: func(a *any.Any) (plugin.Message, error) {
 							switch a.TypeUrl {
@@ -485,8 +437,8 @@ var aggregators = []plugin.Aggregator{
 		NameMock: func() string {
 			return "concat"
 		},
-		AggregateMock: func(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) plugin.AggregatableValue {
-			return v1.(string) + v2.(string)
+		AggregateMock: func(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) (plugin.AggregatableValue, error) {
+			return v1.(string) + v2.(string), nil
 		},
 		MarshalValueMock: func(v plugin.AggregatableValue) (*any.Any, error) {
 			return &any.Any{Value: []byte(v.(string))}, nil
@@ -499,8 +451,8 @@ var aggregators = []plugin.Aggregator{
 		NameMock: func() string {
 			return "sum"
 		},
-		AggregateMock: func(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) plugin.AggregatableValue {
-			return v1.(uint8) + v2.(uint8)
+		AggregateMock: func(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) (plugin.AggregatableValue, error) {
+			return v1.(uint8) + v2.(uint8), nil
 		},
 		MarshalValueMock: func(v plugin.AggregatableValue) (*any.Any, error) {
 			return &any.Any{Value: []byte{v.(uint8)}}, nil

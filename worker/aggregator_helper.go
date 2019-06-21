@@ -32,7 +32,12 @@ func aggregateValueMap(aggregators []plugin.Aggregator, base map[string]*any.Any
 			return errors.Wrapf(err, "failed to unmarshal aggregated value: %+v", extraAny)
 		}
 
-		merged, err := agg.MarshalValue(agg.Aggregate(baseValue, extraValue))
+		val, err := agg.Aggregate(baseValue, extraValue)
+		if err != nil {
+			return errors.Wrapf(err, "failed to Aggregate()")
+		}
+
+		merged, err := agg.MarshalValue(val)
 		if err != nil {
 			return errors.Wrapf(err, "failed to marshal aggregatable value: %#v, %#v", baseAny, extraAny)
 		}

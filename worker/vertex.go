@@ -37,6 +37,8 @@ type computeContextImpl struct {
 	aggregatedPrevStep map[string]*any.Any
 }
 
+var _ = (plugin.ComputeContext)(&computeContextImpl{})
+
 func (c *computeContextImpl) SuperStep() uint64 {
 	return c.superStep
 }
@@ -102,7 +104,11 @@ func (c *computeContextImpl) PutAggregatable(aggregatorName string, v plugin.Agg
 		if err != nil {
 			return errors.Wrapf(err, "failed to unmarshal aggregated value: %+v", current.Value)
 		}
-		pb, err := aggregator.MarshalValue(aggregator.Aggregate(v, v2))
+		val, err := aggregator.Aggregate(v, v2)
+		if err != nil {
+			return errors.Wrap(err, "failed to Aggregate()")
+		}
+		pb, err := aggregator.MarshalValue(val)
 		if err != nil {
 			return errors.Wrapf(err, "failed to marshal aggregatable value: %#v", v)
 		}
@@ -148,11 +154,12 @@ func (state *vertexActor) waitInit(context actor.Context) {
 			state.ActorUtil.Fail(errors.New("vertex has already initialized"))
 			return
 		}
-		state.vertex = state.plugin.NewVertex(plugin.VertexID(cmd.VertexId))
-		if err := state.vertex.Load(); err != nil {
-			state.ActorUtil.Fail(errors.New("failed to load vertex"))
+		vert, err := state.plugin.NewVertex(plugin.VertexID(cmd.VertexId))
+		if err != nil {
+			state.ActorUtil.Fail(errors.New("failed to NewVertex"))
 			return
 		}
+		state.vertex = vert
 		state.partitionID = cmd.PartitionId
 		state.ActorUtil.AppendLoggerField("vertexId", state.vertex.GetID())
 		context.Respond(&command.LoadVertexAck{
@@ -237,6 +244,10 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 	}
 
 	if state.halted {
+		if len(state.messageQueue) > 0 {
+			// activate if it receives messages to be handled in the next step
+			state.halted = false
+		}
 		state.respondComputeAck(ctx)
 		return
 	}

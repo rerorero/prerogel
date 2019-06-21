@@ -202,7 +202,9 @@ func (state *coordinatorActor) computing(context actor.Context) {
 				return
 			}
 
-			if stats.ActiveVertices == 0 {
+			// Why I check the number of messages sent is that the number of actives is often incorrect.
+			// Vertex actor returns its active state with ComputeAck, but then it may receives a message until the next superstep is started
+			if stats.ActiveVertices == 0 && stats.MessagesSent == 0 {
 				// finish superstep
 				state.behavior.Become(state.idle)
 				state.ActorUtil.Logger.Info(fmt.Sprintf("finish computing: step=%v", state.currentStep))

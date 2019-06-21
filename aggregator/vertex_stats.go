@@ -23,20 +23,20 @@ func (s *VertexStatsAggregator) Name() string {
 }
 
 // Aggregate is reduction func
-func (s *VertexStatsAggregator) Aggregate(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) plugin.AggregatableValue {
+func (s *VertexStatsAggregator) Aggregate(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) (plugin.AggregatableValue, error) {
 	pb1, ok := v1.(*VertexStats)
 	if !ok {
-		return fmt.Errorf("unknown aggregatable value: %#v", v1)
+		return nil, fmt.Errorf("unknown aggregatable value: %#v", v1)
 	}
 	pb2, ok := v2.(*VertexStats)
 	if !ok {
-		return fmt.Errorf("unknown aggregatable value: %#v", v2)
+		return nil, fmt.Errorf("unknown aggregatable value: %#v", v2)
 	}
 	return &VertexStats{
 		ActiveVertices: pb1.ActiveVertices + pb2.ActiveVertices,
 		TotalVertices:  pb1.TotalVertices + pb2.TotalVertices,
 		MessagesSent:   pb1.MessagesSent + pb2.MessagesSent,
-	}
+	}, nil
 }
 
 // MarshalValue converts AggregatableValue into any.Any

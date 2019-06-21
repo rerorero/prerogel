@@ -153,7 +153,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 			v, err := aggregator.VertexStatsAggregatorInstance.MarshalValue(&aggregator.VertexStats{
 				ActiveVertices: uint64(active),
 				TotalVertices:  2,
-				MessagesSent:   4,
+				MessagesSent:   uint64(active * 2),
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -239,7 +239,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 	if diff := cmp.Diff(resp, &command.CoordinatorStatsAck{
 		SuperStep:        2,
 		NrOfActiveVertex: 0,
-		NrOfSentMessages: 12,
+		NrOfSentMessages: 0,
 	}); diff != "" {
 		t.Fatalf("unexpected stats: %s", diff)
 	}

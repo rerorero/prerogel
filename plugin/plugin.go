@@ -19,12 +19,6 @@ type VertexID string
 // AggregatableValue is value to be aggregated by aggregator
 type AggregatableValue interface{}
 
-// Edge indicates an edge of graph
-type Edge struct {
-	Value  EdgeValue
-	Target VertexID
-}
-
 // ComputeContext provides information for vertices to process Compute()
 type ComputeContext interface {
 	SuperStep() uint64
@@ -37,25 +31,21 @@ type ComputeContext interface {
 
 // Vertex is abstract of a vertex. thread safe.
 type Vertex interface {
-	Load() error
 	Compute(computeContext ComputeContext) error
 	GetID() VertexID
-	GetOutEdges() []Edge
-	GetValue() (VertexValue, error)
-	SetValue(v VertexValue) error
 }
 
 // Aggregator is Pregel aggregator implemented by user
 type Aggregator interface {
 	Name() string
-	Aggregate(v1 AggregatableValue, v2 AggregatableValue) AggregatableValue
+	Aggregate(v1 AggregatableValue, v2 AggregatableValue) (AggregatableValue, error)
 	MarshalValue(v AggregatableValue) (*any.Any, error)
 	UnmarshalValue(pb *any.Any) (AggregatableValue, error)
 }
 
 // Plugin is a plugin that provides graph computation.
 type Plugin interface {
-	NewVertex(id VertexID) Vertex
+	NewVertex(id VertexID) (Vertex, error)
 	Partition(vertex VertexID, numOfPartitions uint64) (uint64, error)
 	MarshalMessage(msg Message) (*any.Any, error)
 	UnmarshalMessage(pb *any.Any) (Message, error)
