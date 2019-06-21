@@ -48,7 +48,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 					switch cmd := c.Message().(type) {
 					case *command.LoadVertex:
 						initializedVertes = append(initializedVertes, cmd.VertexId)
-						c.Send(c.Parent(), &command.LoadVertexAck{
+						c.Respond(&command.LoadVertexAck{
 							VertexId: cmd.VertexId,
 						})
 					case *command.SuperStepBarrier:
@@ -89,7 +89,7 @@ func Test_partitionActor_Receive_init(t *testing.T) {
 					switch cmd := c.Message().(type) {
 					case *command.LoadVertex:
 						initializedVertes = append(initializedVertes, cmd.VertexId)
-						c.Send(c.Parent(), &command.LoadVertexAck{VertexId: cmd.VertexId})
+						c.Respond(&command.LoadVertexAck{VertexId: cmd.VertexId})
 					case *command.SuperStepBarrier:
 						c.Send(c.Parent(), &command.SuperStepBarrierAck{VertexId: initializedVertes[barrierAckCount]})
 						barrierAckCount++
@@ -169,7 +169,7 @@ func Test_partitionActor_Receive_superstep(t *testing.T) {
 	vertexProps := actor.PropsFromFunc(func(c actor.Context) {
 		switch cmd := c.Message().(type) {
 		case *command.LoadVertex:
-			c.Send(c.Parent(), &command.LoadVertexAck{VertexId: cmd.VertexId})
+			c.Respond(&command.LoadVertexAck{VertexId: cmd.VertexId})
 		case *command.SuperStepBarrier:
 			i := atomic.AddInt32(&called, 1)
 			c.Send(c.Parent(), &command.SuperStepBarrierAck{VertexId: string(vid[i-1])})

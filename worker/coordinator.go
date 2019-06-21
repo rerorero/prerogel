@@ -44,7 +44,7 @@ func NewCoordinatorActor(plg plugin.Plugin, workerProps *actor.Props, logger *lo
 		workerProps: workerProps,
 		ackRecorder: ar,
 	}
-	a.behavior.Become(a.idle)
+	a.behavior.Become(a.setup)
 	return a
 }
 
@@ -76,7 +76,7 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 	}
 }
 
-func (state *coordinatorActor) idle(context actor.Context) {
+func (state *coordinatorActor) setup(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.NewCluster:
 		if state.clusterInfo != nil {
@@ -123,7 +123,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		state.clusterInfo = ci
 
 		context.Respond(&command.NewClusterAck{})
-		state.ActorUtil.Logger.Debug("start initializing workers")
+		state.ActorUtil.LogDebug(context, "start initializing workers")
 		return
 
 	case *command.InitWorkerAck:
@@ -133,22 +133,37 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		}
 		if state.ackRecorder.HasCompleted() {
 			state.ackRecorder.Clear()
-			state.aggregatedCurrentStep = make(map[string]*types.Any)
-			state.currentStep = 0
-			for _, wi := range state.clusterInfo.WorkerInfo {
-				context.Request(wi.WorkerPid, &command.SuperStepBarrier{
-					ClusterInfo: state.clusterInfo,
-				})
-				state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
-			}
-			// TODO: handle worker timeout
 			state.behavior.Become(state.superstep)
-			state.ActorUtil.Logger.Debug("superstep barrier")
+			state.ActorUtil.LogDebug(context, "become idle")
 		}
 		return
 
 	default:
-		state.ActorUtil.Fail(context, fmt.Errorf("[idle] unhandled corrdinator command: command=%#v", cmd))
+		state.ActorUtil.Fail(context, fmt.Errorf("[setup] unhandled corrdinator command: command=%#v", cmd))
+		return
+	}
+}
+
+func (state *coordinatorActor) idle(context actor.Context) {
+	switch cmd := context.Message().(type) {
+	case *command.LoadVertex:
+
+	case *command.StartSuperStep:
+		state.aggregatedCurrentStep = make(map[string]*types.Any)
+		state.currentStep = 0
+		for _, wi := range state.clusterInfo.WorkerInfo {
+			context.Request(wi.WorkerPid, &command.SuperStepBarrier{
+				ClusterInfo: state.clusterInfo,
+			})
+			state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
+		}
+		// TODO: handle worker timeout
+		state.behavior.Become(state.superstep)
+		state.ActorUtil.LogDebug(context, "become superstep")
+		return
+
+	default:
+		state.ActorUtil.Fail(context, fmt.Errorf("[setup] unhandled corrdinator command: command=%#v", cmd))
 		return
 	}
 }
@@ -170,7 +185,7 @@ func (state *coordinatorActor) superstep(context actor.Context) {
 				state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
 			}
 			state.behavior.Become(state.computing)
-			state.ActorUtil.Logger.Debug(fmt.Sprintf("start computing: step=%v", state.currentStep))
+			state.ActorUtil.LogDebug(context, fmt.Sprintf("start computing: step=%v", state.currentStep))
 		}
 		return
 
@@ -208,7 +223,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 			if stats.ActiveVertices == 0 && stats.MessagesSent == 0 {
 				// finish superstep
 				state.behavior.Become(state.idle)
-				state.ActorUtil.Logger.Info(fmt.Sprintf("finish computing: step=%v", state.currentStep))
+				state.ActorUtil.LogInfo(context, fmt.Sprintf("finish computing: step=%v", state.currentStep))
 
 			} else {
 				// move step forward
@@ -221,7 +236,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 				}
 				// TODO: handle worker timeout
 				state.behavior.Become(state.superstep)
-				state.ActorUtil.Logger.Debug(fmt.Sprintf("start computing: step=%v", state.currentStep))
+				state.ActorUtil.LogDebug(context, fmt.Sprintf("start computing: step=%v", state.currentStep))
 			}
 
 			// update aggregated values

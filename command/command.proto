@@ -93,3 +93,5 @@ message CoordinatorStatsAck {
     uint64 nr_of_active_vertex = 2;
     uint64 nr_of_sent_messages = 3;
 }
+
+message StartSuperStep{}

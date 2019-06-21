@@ -92,7 +92,7 @@ LOOP:
 				t.Fatalf("invalid CoordinatorStatsAck: %#v", res)
 			}
 
-			if command.StatsCompleted(stat) {
+			if stat.StatsCompleted() {
 				break LOOP
 			}
 		}

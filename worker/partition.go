@@ -81,11 +81,7 @@ func (state *partitionActor) idle(context actor.Context) {
 			return
 		}
 		state.vertices[vid] = pid
-		context.Request(pid, cmd)
-		return
-
-	case *command.LoadVertexAck:
-		context.Send(context.Parent(), cmd)
+		context.Forward(pid)
 		return
 
 	case *command.SuperStepBarrier:

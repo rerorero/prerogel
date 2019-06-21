@@ -121,6 +121,22 @@ func (state *workerActor) waitPartitionInitAck(context actor.Context) {
 
 func (state *workerActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
+	case *command.LoadVertex:
+		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.VertexId), state.numOfPartitions())
+		if err != nil {
+			state.ActorUtil.Fail(context, fmt.Errorf("failed to find partition for message: %#v", cmd))
+			return
+		}
+
+		destPid, ok := state.partitions[destPartition]
+		if !ok {
+			state.ActorUtil.Fail(context, fmt.Errorf("failed to find partition in worker: %#v", cmd))
+			return
+		}
+
+		context.Forward(destPid)
+		return
+
 	case *command.SuperStepBarrier:
 		state.ActorUtil.LogDebug(context, "super step barrier")
 		if err := state.checkClusterInfo(cmd.ClusterInfo, context.Self()); err != nil {
