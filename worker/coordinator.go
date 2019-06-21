@@ -133,7 +133,7 @@ func (state *coordinatorActor) setup(context actor.Context) {
 		}
 		if state.ackRecorder.HasCompleted() {
 			state.ackRecorder.Clear()
-			state.behavior.Become(state.superstep)
+			state.behavior.Become(state.idle)
 			state.ActorUtil.LogDebug(context, "become idle")
 		}
 		return
@@ -148,7 +148,12 @@ func (state *coordinatorActor) idle(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.LoadVertex:
 		w := state.findWorkerInfoByVertex(context, plugin.VertexID(cmd.VertexId))
-		if
+		if w == nil {
+			state.ActorUtil.LogError(context, fmt.Sprintf("couldn't find worker to assign: vertex=%v", cmd.VertexId))
+			return
+		}
+		context.Forward(w.WorkerPid)
+		return
 
 	case *command.StartSuperStep:
 		state.aggregatedCurrentStep = make(map[string]*types.Any)

@@ -111,12 +111,16 @@ func Test_assignPartition(t *testing.T) {
 func TestNewCoordinatorActor(t *testing.T) {
 	var mux sync.Mutex
 	var initCount int32
+	var loadCount int32
 	var barrierCount int32
 	var receivedPartitions []uint64
 	var stepCount int32
 	waitCh := make(chan string, 1)
 	logger, _ := test.NewNullLogger()
 	plugin := &MockedPlugin{
+		PartitionMock: func(id plugin.VertexID, numOfPartitions uint64) (uint64, error) {
+			return plugin.HashPartition(id, numOfPartitions)
+		},
 		GetAggregatorsMock: func() []plugin.Aggregator {
 			return []plugin.Aggregator{aggregator.VertexStatsAggregatorInstance}
 		},
@@ -134,6 +138,9 @@ func TestNewCoordinatorActor(t *testing.T) {
 				waitCh <- "InitWorker"
 				initCount = 0
 			}
+		case *command.LoadVertex:
+			loadCount++
+			c.Respond(&command.LoadVertexAck{VertexId: cmd.VertexId})
 		case *command.SuperStepBarrier:
 			barrierCount++
 			if len(cmd.ClusterInfo.WorkerInfo) != 3 {
@@ -188,6 +195,8 @@ func TestNewCoordinatorActor(t *testing.T) {
 		},
 		NrOfPartitions: 10,
 	})
+
+	println("wait for InitWorker")
 	if s := <-waitCh; s != "InitWorker" {
 		t.Fatal("unexpected initCount")
 	}
@@ -196,10 +205,25 @@ func TestNewCoordinatorActor(t *testing.T) {
 		t.Fatalf("unexpected partitions: %s", diff)
 	}
 
+	if _, err := proxy.SendAndAwait(context, &command.LoadVertex{VertexId: "a"}, &command.LoadVertexAck{}, time.Second); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := proxy.SendAndAwait(context, &command.LoadVertex{VertexId: "b"}, &command.LoadVertexAck{}, time.Second); err != nil {
+		t.Fatal(err)
+	}
+	if loadCount != 2 {
+		t.Fatal("unexpected load count")
+	}
+
+	// start
+	proxy.Send(context, &command.StartSuperStep{})
+
 	// step 0
+	println("wait for SuperStepBarrier 0")
 	if s := <-waitCh; s != "SuperStepBarrier" {
 		t.Fatal("unexpected barrierCount")
 	}
+	println("wait for Compute 0")
 	if s := <-waitCh; s != "Compute" {
 		t.Fatal("unexpected stepCount")
 	}
@@ -217,17 +241,21 @@ func TestNewCoordinatorActor(t *testing.T) {
 	}
 
 	// step 1
+	println("wait for SuperStepBarrier 1")
 	if s := <-waitCh; s != "SuperStepBarrier" {
 		t.Fatal("unexpected barrierCount")
 	}
+	println("wait for Compute 1")
 	if s := <-waitCh; s != "Compute" {
 		t.Fatal("unexpected stepCount")
 	}
 
 	// step 2
+	println("wait for SuperStepBarrier 2")
 	if s := <-waitCh; s != "SuperStepBarrier" {
 		t.Fatal("unexpected barrierCount")
 	}
+	println("wait for Compute 2")
 	if s := <-waitCh; s != "Compute" {
 		t.Fatal("unexpected stepCount")
 	}

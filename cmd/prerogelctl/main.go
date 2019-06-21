@@ -45,6 +45,7 @@ func realMain() int {
 	switch {
 	case len(args) == 0:
 		err = errors.New("no command specified")
+	case args[0] == "load":
 	case args[0] == "watch":
 		err = watch(coordinator)
 	default:
@@ -97,7 +98,7 @@ func watch(coordinator *actor.PID) error {
 
 		print(stat)
 
-		if command.StatsCompleted(stat) {
+		if stat.StatsCompleted() {
 			log.Println("")
 			info("complete")
 			break
