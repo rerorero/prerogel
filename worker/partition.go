@@ -5,7 +5,6 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/gogo/protobuf/types"
-	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/command"
 	"github.com/rerorero/prerogel/plugin"
 	"github.com/rerorero/prerogel/util"
@@ -73,11 +72,16 @@ func (state *partitionActor) idle(context actor.Context) {
 	case *command.LoadVertex:
 		vid := plugin.VertexID(cmd.VertexId)
 		if _, ok := state.vertices[vid]; ok {
-			state.ActorUtil.LogError(context, fmt.Sprintf("vertex=%v has already created", cmd.VertexId))
+			err := fmt.Sprintf("vertex has already created: id=%s", cmd.VertexId)
+			state.ActorUtil.LogError(context, err)
+			context.Respond(&command.LoadVertexAck{VertexId: string(cmd.VertexId), Error: err})
+			return
 		}
 		pid, err := context.SpawnNamed(state.vertexProps, fmt.Sprintf("v%v", vid))
 		if err != nil {
-			state.ActorUtil.Fail(context, errors.Wrapf(err, "failed to spawn vertex %v", vid))
+			err := fmt.Sprintf("failed to spawn actor: id=%s", cmd.VertexId)
+			state.ActorUtil.LogError(context, err)
+			context.Respond(&command.LoadVertexAck{VertexId: string(cmd.VertexId), Error: err})
 			return
 		}
 		state.vertices[vid] = pid

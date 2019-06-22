@@ -149,7 +149,9 @@ func (state *coordinatorActor) idle(context actor.Context) {
 	case *command.LoadVertex:
 		w := state.findWorkerInfoByVertex(context, plugin.VertexID(cmd.VertexId))
 		if w == nil {
-			state.ActorUtil.LogError(context, fmt.Sprintf("couldn't find worker to assign: vertex=%v", cmd.VertexId))
+			err := fmt.Sprintf("worker couldn't be found: vertex id=%s", cmd.VertexId)
+			state.ActorUtil.LogError(context, err)
+			context.Respond(&command.LoadVertexAck{VertexId: string(cmd.VertexId), Error: err})
 			return
 		}
 		context.Forward(w.WorkerPid)

@@ -151,12 +151,16 @@ func (state *vertexActor) waitInit(context actor.Context) {
 	switch cmd := context.Message().(type) {
 	case *command.LoadVertex:
 		if state.vertex != nil {
-			state.ActorUtil.Fail(context, errors.New("vertex has already initialized"))
+			err := fmt.Sprintf("vertex has already initialized: id=%s", cmd.VertexId)
+			state.ActorUtil.LogError(context, err)
+			context.Respond(&command.LoadVertexAck{VertexId: string(state.vertex.GetID()), Error: err})
 			return
 		}
 		vert, err := state.plugin.NewVertex(plugin.VertexID(cmd.VertexId))
 		if err != nil {
-			state.ActorUtil.Fail(context, errors.New("failed to NewVertex"))
+			err := fmt.Sprintf("failed to NewVertex: id=%s", cmd.VertexId)
+			state.ActorUtil.LogError(context, err)
+			context.Respond(&command.LoadVertexAck{VertexId: string(state.vertex.GetID()), Error: err})
 			return
 		}
 		state.vertex = vert

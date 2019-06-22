@@ -124,13 +124,17 @@ func (state *workerActor) idle(context actor.Context) {
 	case *command.LoadVertex:
 		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.VertexId), state.clusterInfo.NumOfPartitions())
 		if err != nil {
-			state.ActorUtil.Fail(context, fmt.Errorf("failed to find partition for message: %#v", cmd))
+			err := fmt.Sprintf("partition could not be found: vertex id=%s", cmd.VertexId)
+			state.ActorUtil.LogError(context, err)
+			context.Respond(&command.LoadVertexAck{VertexId: string(cmd.VertexId), Error: err})
 			return
 		}
 
 		destPid, ok := state.partitions[destPartition]
 		if !ok {
-			state.ActorUtil.Fail(context, fmt.Errorf("failed to find partition in worker: %#v", cmd))
+			err := fmt.Sprintf("routing vertex issue: vertex id=%s", cmd.VertexId)
+			state.ActorUtil.LogError(context, err)
+			context.Respond(&command.LoadVertexAck{VertexId: string(cmd.VertexId), Error: err})
 			return
 		}
 

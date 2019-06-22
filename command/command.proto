@@ -8,6 +8,7 @@ message LoadVertex {
 }
 message LoadVertexAck {
     string vertex_id = 1;
+    string error = 2;
 }
 
 message SuperStepBarrier {
