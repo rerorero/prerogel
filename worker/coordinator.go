@@ -30,6 +30,7 @@ type coordinatorActor struct {
 	aggregatedCurrentStep map[string]*types.Any
 	lastAggregatedValue   lastAggregated
 	currentStep           uint64
+	stateName             string
 }
 
 // NewCoordinatorActor returns an actor instance
@@ -43,6 +44,7 @@ func NewCoordinatorActor(plg plugin.Plugin, workerProps *actor.Props, logger *lo
 		},
 		workerProps: workerProps,
 		ackRecorder: ar,
+		stateName:   "initializing cluster",
 	}
 	a.behavior.Become(a.setup)
 	return a
@@ -57,7 +59,9 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 
 	switch context.Message().(type) {
 	case *command.CoordinatorStats:
-		s := &command.CoordinatorStatsAck{}
+		s := &command.CoordinatorStatsAck{
+			State: state.stateName,
+		}
 		if state.lastAggregatedValue.values != nil {
 			stats, err := state.getStats(state.lastAggregatedValue.values)
 			if err != nil {
@@ -100,7 +104,7 @@ func (state *coordinatorActor) setup(context actor.Context) {
 				// remote actor
 				pidRes, err := remote.SpawnNamed(wreq.HostAndPort, fmt.Sprintf("worker-%d", i), WorkerActorKind, 30*time.Second)
 				if err != nil {
-					state.ActorUtil.Fail(context, errors.Wrapf(err, "failed to spawn remote actor: code=%v", pidRes.StatusCode))
+					state.ActorUtil.Fail(context, errors.Wrap(err, "failed to spawn remote actor"))
 					return
 				}
 				pid = pidRes.Pid
@@ -134,6 +138,7 @@ func (state *coordinatorActor) setup(context actor.Context) {
 		if state.ackRecorder.HasCompleted() {
 			state.ackRecorder.Clear()
 			state.behavior.Become(state.idle)
+			state.stateName = "idle"
 			state.ActorUtil.LogDebug(context, "become idle")
 		}
 		return
@@ -168,6 +173,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		}
 		// TODO: handle worker timeout
 		state.behavior.Become(state.superstep)
+		state.stateName = "processing superstep"
 		state.ActorUtil.LogDebug(context, "become superstep")
 		return
 
@@ -194,6 +200,7 @@ func (state *coordinatorActor) superstep(context actor.Context) {
 				state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
 			}
 			state.behavior.Become(state.computing)
+			state.stateName = "processing superstep - computing"
 			state.ActorUtil.LogDebug(context, fmt.Sprintf("start computing: step=%v", state.currentStep))
 		}
 		return
@@ -232,6 +239,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 			if stats.ActiveVertices == 0 && stats.MessagesSent == 0 {
 				// finish superstep
 				state.behavior.Become(state.idle)
+				state.stateName = "idle"
 				state.ActorUtil.LogInfo(context, fmt.Sprintf("finish computing: step=%v", state.currentStep))
 
 			} else {
@@ -245,6 +253,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 				}
 				// TODO: handle worker timeout
 				state.behavior.Become(state.superstep)
+				state.stateName = "processing superstep"
 				state.ActorUtil.LogDebug(context, fmt.Sprintf("start computing: step=%v", state.currentStep))
 			}
 

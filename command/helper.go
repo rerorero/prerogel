@@ -21,6 +21,12 @@ func (info *ClusterInfo) FindWoerkerInfoByPartition(partitionID uint64) *Cluster
 
 // NumOfPartitions returns number of partitions
 func (info *ClusterInfo) NumOfPartitions() uint64 {
+	if info == nil {
+		return 0
+	}
+	if info.WorkerInfo == nil {
+		return 0
+	}
 	var size uint64
 	for _, i := range info.WorkerInfo {
 		size += uint64(len(i.Partitions))

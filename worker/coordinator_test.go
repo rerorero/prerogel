@@ -236,6 +236,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 		SuperStep:        1,
 		NrOfActiveVertex: 6,
 		NrOfSentMessages: 12,
+		State:            "processing superstep",
 	}); diff != "" {
 		t.Fatalf("unexpected stats: %s", diff)
 	}
@@ -268,6 +269,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 		SuperStep:        2,
 		NrOfActiveVertex: 0,
 		NrOfSentMessages: 0,
+		State:            "idle",
 	}); diff != "" {
 		t.Fatalf("unexpected stats: %s", diff)
 	}

@@ -6,10 +6,14 @@ import (
 	"hash/fnv"
 
 	"github.com/gogo/protobuf/types"
+	"github.com/pkg/errors"
 )
 
 // HashPartition calculates hash of id then mod
 func HashPartition(id VertexID, nrOfPartitions uint64) (uint64, error) {
+	if nrOfPartitions == 0 {
+		return 0, errors.New("no partitions")
+	}
 	h := fnv.New64()
 	if _, err := h.Write([]byte(string(id))); err != nil {
 		return 0, err

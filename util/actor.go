@@ -14,7 +14,7 @@ type ActorUtil struct {
 func (u *ActorUtil) Fail(ctx actor.Context, err error) {
 	u.Logger.WithError(err).
 		WithField("actor", ctx.Self().Id).
-		Error(err.Error())
+		Errorf("%+v", err)
 	// let it crash
 	panic(err)
 }

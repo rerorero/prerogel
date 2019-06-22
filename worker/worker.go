@@ -110,7 +110,7 @@ func (state *workerActor) waitPartitionInitAck(context actor.Context) {
 			})
 			state.resetAckRecorder()
 			state.behavior.Become(state.idle)
-			state.ActorUtil.LogDebug(context, "become superstep")
+			state.ActorUtil.LogDebug(context, "become idle")
 		}
 		return
 	default:
@@ -124,7 +124,7 @@ func (state *workerActor) idle(context actor.Context) {
 	case *command.LoadVertex:
 		destPartition, err := state.plugin.Partition(plugin.VertexID(cmd.VertexId), state.clusterInfo.NumOfPartitions())
 		if err != nil {
-			err := fmt.Sprintf("partition could not be found: vertex id=%s", cmd.VertexId)
+			err := fmt.Sprintf("failed to find partition: vertex id=%s err=%v", cmd.VertexId, err)
 			state.ActorUtil.LogError(context, err)
 			context.Respond(&command.LoadVertexAck{VertexId: string(cmd.VertexId), Error: err})
 			return
