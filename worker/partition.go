@@ -45,6 +45,12 @@ func (state *partitionActor) Receive(context actor.Context) {
 		// ignore
 		return
 	}
+
+	if cmd, ok := context.Message().(*command.ClusterInfo); ok {
+		state.broadcastToVertices(context, cmd)
+		return
+	}
+
 	state.behavior.Receive(context)
 }
 
@@ -173,7 +179,6 @@ func (state *partitionActor) superstep(context actor.Context) {
 }
 
 func (state *partitionActor) broadcastToVertices(context actor.Context, msg interface{}) {
-	state.LogDebug(context, fmt.Sprintf("broadcast %#v", msg))
 	for _, pid := range state.vertices {
 		context.Request(pid, msg)
 	}

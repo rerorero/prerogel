@@ -125,6 +125,9 @@ func (state *coordinatorActor) setup(context actor.Context) {
 		}
 
 		state.clusterInfo = ci
+		for _, wi := range state.clusterInfo.WorkerInfo {
+			context.Send(wi.WorkerPid, ci)
+		}
 
 		context.Respond(&command.NewClusterAck{})
 		state.ActorUtil.LogDebug(context, "start initializing workers")
@@ -166,9 +169,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		state.aggregatedCurrentStep = make(map[string]*types.Any)
 		state.currentStep = 0
 		for _, wi := range state.clusterInfo.WorkerInfo {
-			context.Request(wi.WorkerPid, &command.SuperStepBarrier{
-				ClusterInfo: state.clusterInfo,
-			})
+			context.Request(wi.WorkerPid, &command.SuperStepBarrier{})
 			state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
 		}
 		// TODO: handle worker timeout
@@ -246,9 +247,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 				// move step forward
 				state.currentStep += uint64(1)
 				for _, wi := range state.clusterInfo.WorkerInfo {
-					context.Request(wi.WorkerPid, &command.SuperStepBarrier{
-						ClusterInfo: state.clusterInfo,
-					})
+					context.Request(wi.WorkerPid, &command.SuperStepBarrier{})
 					state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
 				}
 				// TODO: handle worker timeout

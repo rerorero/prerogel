@@ -143,9 +143,6 @@ func TestNewCoordinatorActor(t *testing.T) {
 			c.Respond(&command.LoadVertexAck{VertexId: cmd.VertexId})
 		case *command.SuperStepBarrier:
 			barrierCount++
-			if len(cmd.ClusterInfo.WorkerInfo) != 3 {
-				t.Fatal("unexpected worker len")
-			}
 			c.Respond(&command.SuperStepBarrierWorkerAck{WorkerPid: c.Self()})
 			if barrierCount == 3 {
 				waitCh <- "SuperStepBarrier"

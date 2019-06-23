@@ -63,6 +63,13 @@ func (state *workerActor) Receive(context actor.Context) {
 		// ignore
 		return
 	}
+
+	if cmd, ok := context.Message().(*command.ClusterInfo); ok {
+		state.clusterInfo = cmd
+		state.broadcastToPartitions(context, cmd)
+		return
+	}
+
 	state.behavior.Receive(context)
 }
 
@@ -143,12 +150,6 @@ func (state *workerActor) idle(context actor.Context) {
 
 	case *command.SuperStepBarrier:
 		state.ActorUtil.LogDebug(context, "super step barrier")
-		if err := state.checkClusterInfo(cmd.ClusterInfo, context.Self()); err != nil {
-			state.ActorUtil.Fail(context, err)
-			return
-		}
-		state.clusterInfo = cmd.ClusterInfo
-		state.clusterInfo = cmd.ClusterInfo
 		state.ssMessageBuf.clear()
 		state.broadcastToPartitions(context, cmd)
 		state.resetAckRecorder()
@@ -303,7 +304,7 @@ func (state *workerActor) checkClusterInfo(clusterInfo *command.ClusterInfo, sel
 		}
 	}
 	if cmdPartitions == nil {
-		return fmt.Errorf("worker not found in command.WorkerInfo: me=%v", self)
+		return fmt.Errorf("worker not found in WorkerInfo: me=%v", self)
 	}
 	var currentPartitions []uint64
 	for p := range state.partitions {

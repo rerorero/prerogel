@@ -11,9 +11,7 @@ message LoadVertexAck {
     string error = 2;
 }
 
-message SuperStepBarrier {
-    ClusterInfo clusterInfo = 1;
-}
+message SuperStepBarrier {}
 message SuperStepBarrierAck {
     string vertex_id = 1;
 }
