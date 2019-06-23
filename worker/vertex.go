@@ -62,6 +62,9 @@ func (c *computeContextImpl) SendMessageTo(dest plugin.VertexID, m plugin.Messag
 		Message:      pb,
 	})
 
+	c.vertexActor.ActorUtil.LogDebug(c.ctx, fmt.Sprintf("message sent: uuid=%s, %v -> %v",
+		messageID, c.vertexActor.vertex.GetID(), dest))
+
 	if !c.vertexActor.ackRecorder.AddToWaitList(messageID) {
 		c.vertexActor.ActorUtil.LogWarn(c.ctx, fmt.Sprintf("duplicate superstep message: from=%v to=%v", c.vertexActor.vertex.GetID(), dest))
 	}
@@ -168,7 +171,7 @@ func (state *vertexActor) waitInit(context actor.Context) {
 			VertexId: string(state.vertex.GetID()),
 		})
 		state.behavior.Become(state.superstep)
-		state.ActorUtil.LogDebug(context, "vertex has initialized")
+		state.ActorUtil.LogDebug(context, "vertex has initialized, become superstep")
 		return
 
 	default:

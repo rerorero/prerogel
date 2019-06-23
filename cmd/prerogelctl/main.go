@@ -63,6 +63,8 @@ func realMain() int {
 		err = showStat(coordinator)
 	case args[0] == "load":
 		load(coordinator, args[1:])
+	case args[0] == "start":
+		err = startSuperStep(coordinator)
 	case args[0] == "watch":
 		err = watch(coordinator)
 	default:
@@ -192,4 +194,9 @@ func load(coordinator *actor.PID, ids []string) error {
 	log.Println("done")
 
 	return nil
+}
+
+func startSuperStep(coordinator *actor.PID) error {
+	actor.EmptyRootContext.Send(coordinator, &command.StartSuperStep{})
+	return watch(coordinator)
 }

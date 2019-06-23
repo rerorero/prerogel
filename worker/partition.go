@@ -104,6 +104,11 @@ func (state *partitionActor) idle(context actor.Context) {
 		state.behavior.Become(state.waitSuperStepBarrierAck)
 		state.aggregatedCurrentStep = make(map[string]*types.Any)
 		return
+
+	case *command.SuperStepMessage:
+		state.handleMessage(context, cmd)
+		return
+
 	default:
 		state.ActorUtil.Fail(context, fmt.Errorf("[idle] unhandled partition command: command=%#v", cmd))
 		return
@@ -163,18 +168,21 @@ func (state *partitionActor) superstep(context actor.Context) {
 		return
 
 	case *command.SuperStepMessage:
-		if _, ok := state.vertices[plugin.VertexID(cmd.SrcVertexId)]; ok {
-			context.Forward(context.Parent())
-		} else if pid, ok := state.vertices[plugin.VertexID(cmd.DestVertexId)]; ok {
-			context.Forward(pid)
-		} else {
-			state.ActorUtil.LogError(context, fmt.Sprintf("[superstep] unknown destination message: msg=%#v", cmd))
-		}
+		state.handleMessage(context, cmd)
 		return
 
 	default:
 		state.ActorUtil.Fail(context, fmt.Errorf("[superstep] unhandled partition command: command=%#v", cmd))
 		return
+	}
+}
+func (state *partitionActor) handleMessage(context actor.Context, cmd *command.SuperStepMessage) {
+	if _, ok := state.vertices[plugin.VertexID(cmd.SrcVertexId)]; ok {
+		context.Forward(context.Parent())
+	} else if pid, ok := state.vertices[plugin.VertexID(cmd.DestVertexId)]; ok {
+		context.Forward(pid)
+	} else {
+		state.ActorUtil.LogError(context, fmt.Sprintf("[superstep] unknown destination message: msg=%#v", cmd))
 	}
 }
 
