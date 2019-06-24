@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/rerorero/prerogel/aggregator"
+
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/pkg/errors"
@@ -38,6 +40,9 @@ func Run(ctx context.Context, plg plugin.Plugin, envPrefix string) error {
 func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) error {
 	root := actor.EmptyRootContext
 	logger := conf.Logger()
+
+	// injection aggregators used for internal
+	plg = newPluginProxy(plg).appendAggregators([]plugin.Aggregator{aggregator.VertexStatsAggregatorInstance})
 
 	workerForLocal := workerProps(plg, logger)
 	coordinatorProps := actor.PropsFromProducer(func() actor.Actor {
@@ -84,6 +89,9 @@ func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) e
 // RunWorker starts running as normal worker
 func RunWorker(ctx context.Context, plg plugin.Plugin, conf *config.WorkerEnv) error {
 	logger := conf.Logger()
+	// injection aggregators used for internal
+	plg = newPluginProxy(plg).appendAggregators([]plugin.Aggregator{aggregator.VertexStatsAggregatorInstance})
+
 	remote.Register(WorkerActorKind, workerProps(plg, logger))
 	remote.Start(conf.ListenAddress)
 
