@@ -122,7 +122,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 			return plugin.HashPartition(id, numOfPartitions)
 		},
 		GetAggregatorsMock: func() []plugin.Aggregator {
-			return []plugin.Aggregator{aggregator.VertexStatsAggregatorInstance}
+			return []plugin.Aggregator{vertexStatsAggregatorInstance}
 		},
 	}
 
@@ -154,7 +154,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 			if cmd.SuperStep == 2 {
 				active = 0 // to finish
 			}
-			v, err := aggregator.VertexStatsAggregatorInstance.MarshalValue(&aggregator.VertexStats{
+			v, err := vertexStatsAggregatorInstance.MarshalValue(&aggregator.VertexStats{
 				ActiveVertices: uint64(active),
 				TotalVertices:  2,
 				MessagesSent:   uint64(active * 2),
@@ -165,7 +165,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 			c.Respond(&command.ComputeWorkerAck{
 				WorkerPid: c.Self(),
 				AggregatedValues: map[string]*types.Any{
-					aggregator.VertexStatsName: v,
+					VertexStatsName: v,
 				},
 			})
 			if stepCount == 3 {

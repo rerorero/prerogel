@@ -276,7 +276,7 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 }
 
 func (state *vertexActor) respondComputeAck(ctx actor.Context) {
-	stats, err := findAggregator(state.plugin.GetAggregators(), aggregator.VertexStatsName)
+	stats, err := findAggregator(state.plugin.GetAggregators(), VertexStatsName)
 	if err == nil {
 		var active uint64
 		if !state.halted {
@@ -287,11 +287,11 @@ func (state *vertexActor) respondComputeAck(ctx actor.Context) {
 			TotalVertices:  1,
 			MessagesSent:   state.statsMessageSent,
 		})
-		if err == nil {
+		if err != nil {
 			state.ActorUtil.LogError(ctx, fmt.Sprintf("failed to marshal stats: %v", err))
-		} else {
-			state.aggregatedCurrentStep[aggregator.VertexStatsName] = pb
+			return
 		}
+		state.aggregatedCurrentStep[VertexStatsName] = pb
 	}
 
 	// TODO: store vertex state

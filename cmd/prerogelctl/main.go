@@ -28,6 +28,7 @@ var (
 	watchDuration = flag.Int("duration", 300, "ping duration (milliseconds)")
 	listenAddr    = flag.String("listen", "127.0.0.1:8888", "listen address")
 	degub         = flag.Bool("debug", false, "debug mode")
+	// TODO: maxStep         = flag.Int("max-step", 0, "maximum number of supper step, 0 means no limit")
 )
 
 func realMain() int {
@@ -67,6 +68,7 @@ func realMain() int {
 		err = startSuperStep(coordinator)
 	case args[0] == "watch":
 		err = watch(coordinator)
+	// TODO: case args[0] == "halt":
 	default:
 		err = fmt.Errorf("%s - no such command", args[0])
 		flag.PrintDefaults()

@@ -23,35 +23,34 @@ type vert struct {
 }
 
 func (v *vert) Compute(ctx plugin.ComputeContext) error {
-	// send self to all outgoing edges
+	// no messages are sent in superstep 0
+	if ctx.SuperStep() > 0 {
+		messages := ctx.ReceivedMessages()
+
+		if len(messages) == 0 {
+			ctx.VoteToHalt()
+			return nil
+		}
+
+		max, err := getMaxFromMessages(messages)
+		if err != nil {
+			return err
+		}
+
+		if max <= v.value {
+			ctx.VoteToHalt()
+			return nil
+		}
+
+		v.value = max
+	}
+
+	// send value to all outgoing edges
 	for _, edge := range v.outgoingEdges {
 		if err := ctx.SendMessageTo(plugin.VertexID(edge), v.value); err != nil {
 			return err
 		}
 	}
-
-	// no messages are sent in superstep 0
-	if ctx.SuperStep() == 0 {
-		return nil
-	}
-
-	messages := ctx.ReceivedMessages()
-
-	if len(messages) == 0 {
-		ctx.VoteToHalt()
-		return nil
-	}
-
-	max, err := getMaxFromMessages(messages)
-	if err != nil {
-		return err
-	}
-
-	if max < v.value {
-		ctx.VoteToHalt()
-		return nil
-	}
-
 	return nil
 }
 

@@ -7,18 +7,14 @@ import (
 	"github.com/rerorero/prerogel/plugin"
 )
 
-// VertexStatsName is aggregator name of VertexStatsAggregator
-const VertexStatsName = "prerogel/vertex-stats"
-
-// VertexStatsAggregatorInstance is singleton
-var VertexStatsAggregatorInstance = &VertexStatsAggregator{}
-
 // VertexStatsAggregator is aggregator for VertexStats
-type VertexStatsAggregator struct{}
+type VertexStatsAggregator struct {
+	AggName string
+}
 
 // Name is aggregator name
 func (s *VertexStatsAggregator) Name() string {
-	return VertexStatsName
+	return s.AggName
 }
 
 // Aggregate is reduction func

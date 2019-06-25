@@ -270,7 +270,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 }
 
 func (state *coordinatorActor) getStats(aggregated map[string]*types.Any) (*aggregator.VertexStats, error) {
-	v, err := getAggregatedValue(state.plugin.GetAggregators(), aggregated, aggregator.VertexStatsName)
+	v, err := getAggregatedValue(state.plugin.GetAggregators(), aggregated, VertexStatsName)
 	if err != nil {
 		return nil, err
 	}
