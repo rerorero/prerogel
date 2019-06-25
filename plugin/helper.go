@@ -2,11 +2,11 @@ package plugin
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"hash/fnv"
 
 	"github.com/gogo/protobuf/types"
-	"github.com/pkg/errors"
 )
 
 // HashPartition calculates hash of id then mod
