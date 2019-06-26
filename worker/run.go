@@ -40,7 +40,7 @@ func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) e
 	logger := conf.Logger()
 
 	// injection aggregators used for internal
-	plg = newPluginProxy(plg).appendAggregators([]plugin.Aggregator{vertexStatsAggregatorInstance})
+	plg = newPluginProxy(plg).appendAggregators(systemAggregator)
 
 	workerForLocal := workerProps(plg, logger)
 	coordinatorProps := actor.PropsFromProducer(func() actor.Actor {
@@ -88,7 +88,7 @@ func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) e
 func RunWorker(ctx context.Context, plg plugin.Plugin, conf *config.WorkerEnv) error {
 	logger := conf.Logger()
 	// injection aggregators used for internal
-	plg = newPluginProxy(plg).appendAggregators([]plugin.Aggregator{vertexStatsAggregatorInstance})
+	plg = newPluginProxy(plg).appendAggregators(systemAggregator)
 
 	remote.Register(WorkerActorKind, workerProps(plg, logger))
 	remote.Start(conf.ListenAddress)

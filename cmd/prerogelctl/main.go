@@ -68,6 +68,8 @@ func realMain() int {
 		err = startSuperStep(coordinator)
 	case args[0] == "watch":
 		err = watch(coordinator)
+	case args[0] == "agg":
+		err = showAggregatedValue(coordinator)
 	// TODO: case args[0] == "halt":
 	default:
 		err = fmt.Errorf("%s - no such command", args[0])
@@ -85,8 +87,26 @@ func exitErr(err error) {
 	log.Fatalf("ERROR: %v", err)
 }
 
-func info(msg string) {
-	log.Println("INFO: " + msg)
+func showAggregatedValue(coordinator *actor.PID) error {
+	ctx := actor.EmptyRootContext
+	fut := ctx.RequestFuture(coordinator, &command.ShowAggregatedValue{}, time.Duration(*timeoutSec)*time.Second)
+	if err := fut.Wait(); err != nil {
+		return errors.Wrap(err, "failed to request: ")
+	}
+	res, err := fut.Result()
+	if err != nil {
+		return errors.Wrap(err, "coordinator responds error: ")
+	}
+	agg, ok := res.(*command.ShowAggregatedValueAck)
+	if !ok {
+		return fmt.Errorf("invalid CoordinatorStatsAck: %#v", res)
+	}
+
+	log.Println(fmt.Sprintf("got %d values", len(agg.AggregatedValues)))
+	for name, val := range agg.AggregatedValues {
+		log.Printf("[%s] %s\n", name, val)
+	}
+	return nil
 }
 
 func showStat(coordinator *actor.PID) error {
@@ -113,7 +133,7 @@ func watch(coordinator *actor.PID) error {
 
 		if stat.StatsCompleted() {
 			log.Println("")
-			info("complete")
+			log.Println("completed")
 			break
 		}
 
@@ -126,7 +146,7 @@ func watch(coordinator *actor.PID) error {
 func getStat(ctx actor.SenderContext, coordinator *actor.PID) (*command.CoordinatorStatsAck, error) {
 	fut := ctx.RequestFuture(coordinator, &command.CoordinatorStats{}, time.Duration(*timeoutSec)*time.Second)
 	if err := fut.Wait(); err != nil {
-		return nil, errors.Wrap(err, "failed to ask coordinator: ")
+		return nil, errors.Wrap(err, "failed to request: ")
 	}
 	res, err := fut.Result()
 	if err != nil {

@@ -58,6 +58,7 @@ type MockedAggregator struct {
 	AggregateMock      func(v1 plugin.AggregatableValue, v2 plugin.AggregatableValue) (plugin.AggregatableValue, error)
 	MarshalValueMock   func(v plugin.AggregatableValue) (*types.Any, error)
 	UnmarshalValueMock func(pb *types.Any) (plugin.AggregatableValue, error)
+	ToStringMock       func(v plugin.AggregatableValue) string
 }
 
 func (m *MockedAggregator) Name() string {
@@ -70,9 +71,12 @@ func (m *MockedAggregator) Aggregate(v1 plugin.AggregatableValue, v2 plugin.Aggr
 
 func (m *MockedAggregator) MarshalValue(v plugin.AggregatableValue) (*types.Any, error) {
 	return m.MarshalValueMock(v)
-
 }
 
 func (m *MockedAggregator) UnmarshalValue(pb *types.Any) (plugin.AggregatableValue, error) {
 	return m.UnmarshalValueMock(pb)
+}
+
+func (m *MockedAggregator) ToString(v plugin.AggregatableValue) string {
+	return m.ToStringMock(v)
 }

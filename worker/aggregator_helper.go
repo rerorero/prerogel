@@ -70,3 +70,17 @@ func getAggregatedValue(aggregators []plugin.Aggregator, aggregated map[string]*
 
 	return ag.UnmarshalValue(anyVal)
 }
+
+func getAggregatedValueString(aggregators []plugin.Aggregator, aggregated map[string]*types.Any, name string) (string, error) {
+	pb, err := getAggregatedValue(aggregators, aggregated, name)
+	if err != nil {
+		return "", err
+	}
+
+	ag, err := findAggregator(aggregators, name)
+	if err != nil {
+		return "", err
+	}
+
+	return ag.ToString(pb), nil
+}

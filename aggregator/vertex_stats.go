@@ -51,3 +51,12 @@ func (s *VertexStatsAggregator) UnmarshalValue(pb *types.Any) (plugin.Aggregatab
 	}
 	return &stats, nil
 }
+
+// ToString converts into string
+func (s *VertexStatsAggregator) ToString(v plugin.AggregatableValue) string {
+	pb, ok := v.(*VertexStats)
+	if !ok {
+		return fmt.Sprintf("<error: not VertexStats %#v>", v)
+	}
+	return pb.String()
+}

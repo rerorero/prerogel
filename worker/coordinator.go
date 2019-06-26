@@ -75,6 +75,27 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 		context.Respond(s)
 		return
 
+	case *command.ShowAggregatedValue:
+		ack := &command.ShowAggregatedValueAck{
+			AggregatedValues: make(map[string]string),
+		}
+		if state.lastAggregatedValue.values != nil {
+			for name := range state.lastAggregatedValue.values {
+				// exclude system aggregator
+				if isSystemAggregator(name) {
+					continue
+				}
+				v, err := getAggregatedValueString(state.plugin.GetAggregators(), state.lastAggregatedValue.values, name)
+				if err != nil {
+					state.ActorUtil.LogError(context, fmt.Sprintf("aggregate value %s not found: %v", name, err))
+					continue
+				}
+				ack.AggregatedValues[name] = v
+			}
+		}
+		context.Respond(ack)
+		return
+
 	default:
 		state.behavior.Receive(context)
 	}
@@ -175,7 +196,7 @@ func (state *coordinatorActor) idle(context actor.Context) {
 		// TODO: handle worker timeout
 		state.behavior.Become(state.superstep)
 		state.stateName = "processing superstep"
-		state.ActorUtil.LogDebug(context, "become superstep")
+		state.ActorUtil.LogInfo(context, "------ superstep 0 started ------")
 		return
 
 	default:
@@ -234,8 +255,9 @@ func (state *coordinatorActor) computing(context actor.Context) {
 				state.ActorUtil.Fail(context, err)
 				return
 			}
+			println("natoring", len(state.aggregatedCurrentStep))
 
-			// Why I check the number of messages sent is that the number of actives is often incorrect.
+			// As the number of actives is often incorrect I have to check the number of messages
 			// Vertex actor returns its active state with ComputeAck, but then it may receives a message until the next superstep is started
 			if stats.ActiveVertices == 0 && stats.MessagesSent == 0 {
 				// finish superstep
@@ -253,7 +275,7 @@ func (state *coordinatorActor) computing(context actor.Context) {
 				// TODO: handle worker timeout
 				state.behavior.Become(state.superstep)
 				state.stateName = "processing superstep"
-				state.ActorUtil.LogDebug(context, fmt.Sprintf("start computing: step=%v", state.currentStep))
+				state.ActorUtil.LogDebug(context, fmt.Sprintf("----- superstep %v started -----", state.currentStep))
 			}
 
 			// update aggregated values
@@ -323,4 +345,13 @@ func assignPartition(nrOfWorkers int, nrOfPartitions uint64) ([][]uint64, error)
 	}
 
 	return pairs, nil
+}
+
+func isSystemAggregator(name string) bool {
+	for _, a := range systemAggregator {
+		if a.Name() == name {
+			return true
+		}
+	}
+	return false
 }

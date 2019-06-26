@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
@@ -83,6 +84,14 @@ func (agg *maxAggregator) MarshalValue(v plugin.AggregatableValue) (*types.Any, 
 
 func (agg *maxAggregator) UnmarshalValue(pb *types.Any) (plugin.AggregatableValue, error) {
 	return plugin.ConvertAnyToUint32(pb)
+}
+
+func (agg *maxAggregator) ToString(v plugin.AggregatableValue) string {
+	n, ok := v.(uint32)
+	if !ok {
+		return fmt.Sprintf("<unknown value: %#v>", v)
+	}
+	return strconv.FormatUint(uint64(n), 10)
 }
 
 // maxPlugin is maximum value plugin

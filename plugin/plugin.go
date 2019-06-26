@@ -41,6 +41,7 @@ type Aggregator interface {
 	Aggregate(v1 AggregatableValue, v2 AggregatableValue) (AggregatableValue, error)
 	MarshalValue(v AggregatableValue) (*types.Any, error)
 	UnmarshalValue(pb *types.Any) (AggregatableValue, error)
+	ToString(v AggregatableValue) string
 }
 
 // Plugin is a plugin that provides graph computation.

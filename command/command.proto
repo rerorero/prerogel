@@ -95,3 +95,8 @@ message CoordinatorStatsAck {
 }
 
 message StartSuperStep{}
+
+message ShowAggregatedValue {}
+message ShowAggregatedValueAck {
+    map<string, string> aggregated_values = 1;
+}

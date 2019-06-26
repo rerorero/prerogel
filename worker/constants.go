@@ -1,6 +1,9 @@
 package worker
 
-import "github.com/rerorero/prerogel/aggregator"
+import (
+	"github.com/rerorero/prerogel/aggregator"
+	"github.com/rerorero/prerogel/plugin"
+)
 
 const (
 	// WorkerActorKind is actor kind of worker
@@ -13,7 +16,13 @@ const (
 	VertexStatsName = "prerogel/vertex-stats"
 )
 
-// VertexStatsAggregatorInstance is singleton
-var vertexStatsAggregatorInstance = &aggregator.VertexStatsAggregator{
-	AggName: VertexStatsName,
-}
+var (
+	// vertexStatsAggregatorInstance is singleton
+	vertexStatsAggregatorInstance = &aggregator.VertexStatsAggregator{
+		AggName: VertexStatsName,
+	}
+
+	systemAggregator = []plugin.Aggregator{
+		vertexStatsAggregatorInstance,
+	}
+)

@@ -229,6 +229,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// TODO: fix unstable test
 	if diff := cmp.Diff(resp, &command.CoordinatorStatsAck{
 		SuperStep:        1,
 		NrOfActiveVertex: 6,
