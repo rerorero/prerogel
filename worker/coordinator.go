@@ -255,7 +255,6 @@ func (state *coordinatorActor) computing(context actor.Context) {
 				state.ActorUtil.Fail(context, err)
 				return
 			}
-			println("natoring", len(state.aggregatedCurrentStep))
 
 			// As the number of actives is often incorrect I have to check the number of messages
 			// Vertex actor returns its active state with ComputeAck, but then it may receives a message until the next superstep is started

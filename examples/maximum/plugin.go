@@ -30,7 +30,7 @@ func (v *vert) Compute(ctx plugin.ComputeContext) error {
 
 		if len(messages) == 0 {
 			ctx.VoteToHalt()
-			return nil
+			return ctx.PutAggregatable(aggregatorName, v.value)
 		}
 
 		max, err := getMaxFromMessages(messages)
@@ -40,7 +40,7 @@ func (v *vert) Compute(ctx plugin.ComputeContext) error {
 
 		if max <= v.value {
 			ctx.VoteToHalt()
-			return nil
+			return ctx.PutAggregatable(aggregatorName, v.value)
 		}
 
 		v.value = max
@@ -52,7 +52,8 @@ func (v *vert) Compute(ctx plugin.ComputeContext) error {
 			return err
 		}
 	}
-	return nil
+
+	return ctx.PutAggregatable(aggregatorName, v.value)
 }
 
 func (v *vert) GetID() plugin.VertexID {

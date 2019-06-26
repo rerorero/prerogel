@@ -127,7 +127,7 @@ func (state *partitionActor) waitSuperStepBarrierAck(context actor.Context) {
 			})
 			state.resetAckRecorder()
 			state.behavior.Become(state.superstep)
-			state.ActorUtil.LogInfo(context, "super step barrier has completed for partition")
+			state.ActorUtil.LogDebug(context, "partition: super step barrier end")
 		}
 		return
 	default:
@@ -163,7 +163,7 @@ func (state *partitionActor) superstep(context actor.Context) {
 			state.resetAckRecorder()
 			state.aggregatedCurrentStep = nil
 			state.behavior.Become(state.idle)
-			state.ActorUtil.LogInfo(context, "compute has completed for partition")
+			state.ActorUtil.LogInfo(context, "partition: compute has completed")
 		}
 		return
 

@@ -183,7 +183,7 @@ func (state *workerActor) waitSuperStepBarrierAck(context actor.Context) {
 			})
 			state.resetAckRecorder()
 			state.behavior.Become(state.superstep)
-			state.ActorUtil.LogInfo(context, "super step barrier has completed for worker")
+			state.ActorUtil.LogDebug(context, "worker: super step barrier has completed")
 		}
 		return
 	default:
@@ -351,7 +351,7 @@ func (state *workerActor) computeAckAndBecomeIdle(context actor.Context) {
 	state.aggregatedCurrentStep = nil
 	state.resetAckRecorder()
 	state.behavior.Become(state.idle)
-	state.ActorUtil.LogInfo(context, "compute has completed for worker")
+	state.ActorUtil.LogDebug(context, "worker: compute has completed")
 }
 
 // newSuperStepMsgBuf creates a new super step message buffer instance
