@@ -193,7 +193,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 		NrOfPartitions: 10,
 	})
 
-	println("wait for InitWorker")
+	t.Log("wait for InitWorker")
 	if s := <-waitCh; s != "InitWorker" {
 		t.Fatal("unexpected initCount")
 	}
@@ -216,11 +216,11 @@ func TestNewCoordinatorActor(t *testing.T) {
 	proxy.Send(context, &command.StartSuperStep{})
 
 	// step 0
-	println("wait for SuperStepBarrier 0")
+	t.Log("wait for SuperStepBarrier 0")
 	if s := <-waitCh; s != "SuperStepBarrier" {
 		t.Fatal("unexpected barrierCount")
 	}
-	println("wait for Compute 0")
+	t.Log("wait for Compute 0")
 	if s := <-waitCh; s != "Compute" {
 		t.Fatal("unexpected stepCount")
 	}
@@ -240,21 +240,21 @@ func TestNewCoordinatorActor(t *testing.T) {
 	}
 
 	// step 1
-	println("wait for SuperStepBarrier 1")
+	t.Log("wait for SuperStepBarrier 1")
 	if s := <-waitCh; s != "SuperStepBarrier" {
 		t.Fatal("unexpected barrierCount")
 	}
-	println("wait for Compute 1")
+	t.Log("wait for Compute 1")
 	if s := <-waitCh; s != "Compute" {
 		t.Fatal("unexpected stepCount")
 	}
 
 	// step 2
-	println("wait for SuperStepBarrier 2")
+	t.Log("wait for SuperStepBarrier 2")
 	if s := <-waitCh; s != "SuperStepBarrier" {
 		t.Fatal("unexpected barrierCount")
 	}
-	println("wait for Compute 2")
+	t.Log("wait for Compute 2")
 	if s := <-waitCh; s != "Compute" {
 		t.Fatal("unexpected stepCount")
 	}

@@ -355,19 +355,19 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 
 	// step 0
 	called = 0
-	println("start superstep barrier 0")
+	t.Log("start superstep barrier 0")
 	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}
 	called = 0
 	messageAck = make(map[int]int)
 	proxy.Send(context, &command.Compute{SuperStep: 0})
-	println("wait for complete computation 0")
+	t.Log("wait for complete computation 0")
 	<-computeAckCh
 
 	// step 1
 	called = 0
-	println("start superstep barrier 1")
+	t.Log("start superstep barrier 1")
 	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}
@@ -375,9 +375,9 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	messageAck = make(map[int]int)
 	proxy.Send(context, &command.Compute{SuperStep: 1})
 	context.Send(other1, "ext-5")
-	println("wait for complete computation 1")
+	t.Log("wait for complete computation 1")
 	<-computeAckCh
-	println("wait for message ack")
+	t.Log("wait for message ack")
 	ack := <-extMessageAckCh
 	if ack.Uuid != "uuid-ext-worker" {
 		t.Fatal("unexpected ack")
@@ -385,13 +385,13 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 
 	// step 2
 	called = 0
-	println("start superstep barrier 2")
+	t.Log("start superstep barrier 2")
 	if _, err := proxy.SendAndAwait(context, &command.SuperStepBarrier{}, &command.SuperStepBarrierWorkerAck{}, time.Second); err != nil {
 		t.Fatal(err)
 	}
 	called = 0
 	messageAck = make(map[int]int)
 	proxy.Send(context, &command.Compute{SuperStep: 2})
-	println("wait for complete computation 2")
+	t.Log("wait for complete computation 2")
 	<-computeAckCh
 }
