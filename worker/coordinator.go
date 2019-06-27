@@ -31,10 +31,11 @@ type coordinatorActor struct {
 	lastAggregatedValue   lastAggregated
 	currentStep           uint64
 	stateName             string
+	shutdownHandler       func()
 }
 
 // NewCoordinatorActor returns an actor instance
-func NewCoordinatorActor(plg plugin.Plugin, workerProps *actor.Props, logger *logrus.Logger) actor.Actor {
+func NewCoordinatorActor(plg plugin.Plugin, workerProps *actor.Props, shutdown func(), logger *logrus.Logger) actor.Actor {
 	ar := &util.AckRecorder{}
 	ar.Clear()
 	a := &coordinatorActor{
@@ -42,9 +43,10 @@ func NewCoordinatorActor(plg plugin.Plugin, workerProps *actor.Props, logger *lo
 		ActorUtil: util.ActorUtil{
 			Logger: logger,
 		},
-		workerProps: workerProps,
-		ackRecorder: ar,
-		stateName:   "initializing cluster",
+		workerProps:     workerProps,
+		ackRecorder:     ar,
+		stateName:       "initializing cluster",
+		shutdownHandler: shutdown,
 	}
 	a.behavior.Become(a.setup)
 	return a
@@ -57,7 +59,7 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 		return
 	}
 
-	switch context.Message().(type) {
+	switch cmd := context.Message().(type) {
 	case *command.CoordinatorStats:
 		s := &command.CoordinatorStatsAck{
 			State: state.stateName,
@@ -94,6 +96,14 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 			}
 		}
 		context.Respond(ack)
+		return
+
+	case *command.Shutdown:
+		state.ActorUtil.LogInfo(context, "shutdown")
+		for _, wi := range state.clusterInfo.WorkerInfo {
+			context.Send(wi.WorkerPid, cmd)
+		}
+		state.shutdownHandler()
 		return
 
 	default:

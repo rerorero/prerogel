@@ -100,3 +100,6 @@ message ShowAggregatedValue {}
 message ShowAggregatedValueAck {
     map<string, string> aggregated_values = 1;
 }
+
+message Shutdown {}
+message ShutdownAck {}

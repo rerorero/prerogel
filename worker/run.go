@@ -38,13 +38,14 @@ func Run(ctx context.Context, plg plugin.Plugin, envPrefix string) error {
 func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) error {
 	root := actor.EmptyRootContext
 	logger := conf.Logger()
+	wait := newWaiting(ctx)
 
 	// injection aggregators used for internal
 	plg = newPluginProxy(plg).appendAggregators(systemAggregator)
 
-	workerForLocal := workerProps(plg, logger)
+	workerForLocal := workerProps(plg, logger, nil)
 	coordinatorProps := actor.PropsFromProducer(func() actor.Actor {
-		return NewCoordinatorActor(plg, workerForLocal, logger)
+		return NewCoordinatorActor(plg, workerForLocal, wait.shutdownHandler, logger)
 	})
 
 	remote.Start(conf.ListenAddress)
@@ -80,26 +81,27 @@ func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) e
 	logger.Info(fmt.Sprintf("coordinator is running: addr=%s partitions=%v workers=%s log=%s",
 		conf.ListenAddress, conf.Partitions, conf.WorkerAddresses, logger.Level.String()))
 
-	waitUntilDone(ctx)
+	wait.waitUntilDone()
 	return nil
 }
 
 // RunWorker starts running as normal worker
 func RunWorker(ctx context.Context, plg plugin.Plugin, conf *config.WorkerEnv) error {
 	logger := conf.Logger()
+	wait := newWaiting(ctx)
 	// injection aggregators used for internal
 	plg = newPluginProxy(plg).appendAggregators(systemAggregator)
 
-	remote.Register(WorkerActorKind, workerProps(plg, logger))
+	remote.Register(WorkerActorKind, workerProps(plg, logger, wait))
 	remote.Start(conf.ListenAddress)
 
 	logger.Info(fmt.Sprintf("worker is running: addr=%s log=%s", conf.ListenAddress, logger.Level.String()))
 
-	waitUntilDone(ctx)
+	wait.waitUntilDone()
 	return nil
 }
 
-func workerProps(plg plugin.Plugin, logger *logrus.Logger) *actor.Props {
+func workerProps(plg plugin.Plugin, logger *logrus.Logger, w *waiting) *actor.Props {
 	vertexProps := actor.PropsFromProducer(func() actor.Actor {
 		return NewVertexActor(plg, logger)
 	})
@@ -107,16 +109,39 @@ func workerProps(plg plugin.Plugin, logger *logrus.Logger) *actor.Props {
 		return NewPartitionActor(plg, vertexProps, logger)
 	})
 	return actor.PropsFromProducer(func() actor.Actor {
-		return NewWorkerActor(plg, partitionProps, logger)
+		return NewWorkerActor(plg, partitionProps, w.shutdownHandler, logger)
 	})
 }
 
-func waitUntilDone(ctx context.Context) {
+type waiting struct {
+	shutdownCh chan struct{}
+	ctx        context.Context
+}
+
+func newWaiting(ctx context.Context) *waiting {
+	return &waiting{
+		ctx:        ctx,
+		shutdownCh: make(chan struct{}, 1),
+	}
+}
+
+func (w *waiting) shutdownHandler() {
+	if w != nil {
+		w.shutdownCh <- struct{}{}
+	}
+}
+
+func (w *waiting) waitUntilDone() {
 	sigCh := make(chan os.Signal, 1)
+	defer close(sigCh)
+	defer close(w.shutdownCh)
+
 	signal.Notify(sigCh, syscall.SIGTERM, os.Interrupt)
 	select {
 	case <-sigCh:
 		logrus.Warn("received SIGTERM")
-	case <-ctx.Done():
+	case <-w.shutdownCh:
+		time.Sleep(1 * time.Second) // wait for message has sent
+	case <-w.ctx.Done():
 	}
 }

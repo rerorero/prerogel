@@ -34,10 +34,11 @@ type workerActor struct {
 	combinedMessagesAck   *util.AckRecorder
 	ssMessageBuf          *superStepMsgBuf
 	aggregatedCurrentStep map[string]*types.Any
+	shutdownHandler       func()
 }
 
 // NewWorkerActor returns a new actor instance
-func NewWorkerActor(plugin plugin.Plugin, partitionProps *actor.Props, logger *logrus.Logger) actor.Actor {
+func NewWorkerActor(plugin plugin.Plugin, partitionProps *actor.Props, shutdown func(), logger *logrus.Logger) actor.Actor {
 	ar := &util.AckRecorder{}
 	ar.Clear()
 	mar := &util.AckRecorder{}
@@ -52,6 +53,7 @@ func NewWorkerActor(plugin plugin.Plugin, partitionProps *actor.Props, logger *l
 		ackRecorder:         ar,
 		combinedMessagesAck: mar,
 		ssMessageBuf:        newSuperStepMsgBuf(plugin),
+		shutdownHandler:     shutdown,
 	}
 	a.behavior.Become(a.waitInit)
 	return a
@@ -64,9 +66,15 @@ func (state *workerActor) Receive(context actor.Context) {
 		return
 	}
 
-	if cmd, ok := context.Message().(*command.ClusterInfo); ok {
+	switch cmd := context.Message().(type) {
+	case *command.ClusterInfo:
 		state.clusterInfo = cmd
 		state.broadcastToPartitions(context, cmd)
+		return
+
+	case *command.Shutdown:
+		state.ActorUtil.LogInfo(context, "shutdown")
+		state.shutdownHandler()
 		return
 	}
 

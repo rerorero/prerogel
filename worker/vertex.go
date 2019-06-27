@@ -171,7 +171,7 @@ func (state *vertexActor) waitInit(context actor.Context) {
 			VertexId: string(state.vertex.GetID()),
 		})
 		state.behavior.Become(state.superstep)
-		state.ActorUtil.LogDebug(context, "vertex has initialized, become superstep")
+		state.ActorUtil.LogInfo(context, fmt.Sprintf("vertex %v loaded", state.vertex.GetID()))
 		return
 
 	default:

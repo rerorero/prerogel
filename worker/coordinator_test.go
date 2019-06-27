@@ -176,7 +176,7 @@ func TestNewCoordinatorActor(t *testing.T) {
 	})
 
 	coordinatorProps := actor.PropsFromProducer(func() actor.Actor {
-		return NewCoordinatorActor(plugin, workerProps, logger)
+		return NewCoordinatorActor(plugin, workerProps, nil, logger)
 	})
 	context := actor.EmptyRootContext
 	proxy := util.NewActorProxy(context, coordinatorProps, func(ctx actor.Context) {

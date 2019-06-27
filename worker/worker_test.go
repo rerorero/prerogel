@@ -295,7 +295,7 @@ func TestNewWorkerActor_routesMessages(t *testing.T) {
 	})
 
 	workerProps := actor.PropsFromProducer(func() actor.Actor {
-		return NewWorkerActor(plugin, partitionProps, logger)
+		return NewWorkerActor(plugin, partitionProps, nil, logger)
 	})
 	context := actor.EmptyRootContext
 	computeAckCh := make(chan *command.ComputeWorkerAck, 1)

@@ -70,7 +70,8 @@ func realMain() int {
 		err = watch(coordinator)
 	case args[0] == "agg":
 		err = showAggregatedValue(coordinator)
-	// TODO: case args[0] == "halt":
+	case args[0] == "shutdown":
+		err = sendShutdown(coordinator)
 	default:
 		err = fmt.Errorf("%s - no such command", args[0])
 		flag.PrintDefaults()
@@ -106,6 +107,13 @@ func showAggregatedValue(coordinator *actor.PID) error {
 	for name, val := range agg.AggregatedValues {
 		log.Printf("[%s] %s\n", name, val)
 	}
+	return nil
+}
+
+func sendShutdown(coordinator *actor.PID) error {
+	ctx := actor.EmptyRootContext
+	ctx.Send(coordinator, &command.Shutdown{})
+	log.Println("ok")
 	return nil
 }
 
