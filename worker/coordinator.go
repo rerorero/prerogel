@@ -103,6 +103,7 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 		for _, wi := range state.clusterInfo.WorkerInfo {
 			context.Send(wi.WorkerPid, cmd)
 		}
+		context.Respond(&command.ShutdownAck{})
 		state.shutdownHandler()
 		return
 

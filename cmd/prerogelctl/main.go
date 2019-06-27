@@ -112,7 +112,13 @@ func showAggregatedValue(coordinator *actor.PID) error {
 
 func sendShutdown(coordinator *actor.PID) error {
 	ctx := actor.EmptyRootContext
-	ctx.Send(coordinator, &command.Shutdown{})
+	fut := ctx.RequestFuture(coordinator, &command.Shutdown{}, time.Duration(*timeoutSec)*time.Second)
+	if err := fut.Wait(); err != nil {
+		return errors.Wrap(err, "failed to request: ")
+	}
+	if _, err := fut.Result(); err != nil {
+		return errors.Wrap(err, "coordinator responds error: ")
+	}
 	log.Println("ok")
 	return nil
 }
