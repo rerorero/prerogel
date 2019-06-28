@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -78,8 +79,21 @@ func RunMaster(ctx context.Context, plg plugin.Plugin, conf *config.MasterEnv) e
 		return fmt.Errorf("failed to initialize cooridnator: unknown ack %#v", res)
 	}
 
-	logger.Info(fmt.Sprintf("coordinator is running: addr=%s partitions=%v workers=%s log=%s",
-		conf.ListenAddress, conf.Partitions, conf.WorkerAddresses, logger.Level.String()))
+	// ctrl server
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.APIPort))
+	if err != nil {
+		return errors.Wrapf(err, "failed to listen HTTP port %d: ", conf.APIPort)
+	}
+	srv := newCtrlServer(coordinator, logger)
+	go func() {
+		if err := srv.serve(ln); err != nil {
+			logger.WithError(err).Error("failed to start API server")
+		}
+	}()
+	defer srv.shutdown(ctx)
+
+	logger.Info(fmt.Sprintf("coordinator is running: addr=%s partitions=%v workers=%s log=%s api_port=%d",
+		conf.ListenAddress, conf.Partitions, conf.WorkerAddresses, logger.Level.String(), conf.APIPort))
 
 	wait.waitUntilDone()
 	return nil

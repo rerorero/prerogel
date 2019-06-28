@@ -1,10 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -125,26 +132,24 @@ func sendShutdown(coordinator *actor.PID) error {
 }
 
 func showStat(coordinator *actor.PID) error {
-	stat, err := getStat(actor.EmptyRootContext, coordinator)
-	if err != nil {
+	var stat command.CoordinatorStatsAck
+	if err := requestAsJSON(http.MethodGet, worker.APIPathStats, &command.CoordinatorStats{}, &stat); err != nil {
 		return err
 	}
 
-	printStat(stat)
+	printStat(&stat)
 
 	return nil
 }
 
 func watch(coordinator *actor.PID) error {
-	ctx := actor.EmptyRootContext
-
 	for {
-		stat, err := getStat(ctx, coordinator)
-		if err != nil {
+		var stat command.CoordinatorStatsAck
+		if err := requestAsJSON(http.MethodGet, worker.APIPathStats, &command.CoordinatorStats{}, &stat); err != nil {
 			return err
 		}
 
-		printStat(stat)
+		printStat(&stat)
 
 		if stat.StatsCompleted() {
 			log.Println("")
@@ -158,20 +163,47 @@ func watch(coordinator *actor.PID) error {
 	return nil
 }
 
-func getStat(ctx actor.SenderContext, coordinator *actor.PID) (*command.CoordinatorStatsAck, error) {
-	fut := ctx.RequestFuture(coordinator, &command.CoordinatorStats{}, time.Duration(*timeoutSec)*time.Second)
-	if err := fut.Wait(); err != nil {
-		return nil, errors.Wrap(err, "failed to request: ")
-	}
-	res, err := fut.Result()
+func requestAsJSON(method string, apiPath string, req interface{}, res interface{}) error {
+	u, err := url.Parse(fmt.Sprintf("http://%s", *masterHost)) // TODO: https?
 	if err != nil {
-		return nil, errors.Wrap(err, "coordinator responds error: ")
+		return errors.Wrap(err, "invalid master host")
 	}
-	stat, ok := res.(*command.CoordinatorStatsAck)
-	if !ok {
-		return nil, fmt.Errorf("invalid CoordinatorStatsAck: %#v", res)
+	u.Path = path.Join(apiPath)
+
+	var body io.Reader
+	if req != nil {
+		b, err := json.Marshal(req)
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal json")
+		}
+		body = bytes.NewReader(b)
 	}
-	return stat, nil
+	request, err := http.NewRequest(method, u.String(), body)
+	if err != nil {
+		return errors.Wrap(err, "failed to new request")
+	}
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return errors.Wrap(err, "failed to request")
+	}
+
+	resBody, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return errors.Wrap(err, "failed to read body")
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP error: status=%d body=%s", response.StatusCode, string(resBody))
+	}
+
+	if res != nil {
+		if err := json.Unmarshal(resBody, res); err != nil {
+			return fmt.Errorf("failed to parse response: %s", resBody)
+		}
+	}
+
+	return nil
 }
 
 func printStat(s *command.CoordinatorStatsAck) {

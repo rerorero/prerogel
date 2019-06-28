@@ -24,6 +24,7 @@ type WorkerEnv struct {
 type MasterEnv struct {
 	CommonConfig
 	ListenAddress   string   `envconfig:"LISTEN_ADDR" default:"127.0.0.1:8801" yaml:"listen_addr"`
+	APIPort         int      `envconfig:"API_PORT" default:":8881" yaml:"api_port"`
 	WorkerAddresses []string `envconfig:"WORKERS" default:"" yaml:"worker_addresses"`
 	Partitions      uint64   `envconfig:"PARTITIONS" yaml:"partitions"`
 }
