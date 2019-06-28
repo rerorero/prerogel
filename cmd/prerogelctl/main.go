@@ -17,9 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	actorlog "github.com/AsynkronIT/protoactor-go/log"
-	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/command"
 	"github.com/rerorero/prerogel/worker"
@@ -31,9 +28,7 @@ func main() {
 
 var (
 	masterHost    = flag.String("host", "", "host address and port of master worker")
-	timeoutSec    = flag.Int("timeout", 5, "timeout (seconds)")
 	watchDuration = flag.Int("duration", 300, "ping duration (milliseconds)")
-	listenAddr    = flag.String("listen", "127.0.0.1:8888", "listen address")
 	degub         = flag.Bool("debug", false, "debug mode")
 	// TODO: maxStep         = flag.Int("max-step", 0, "maximum number of supper step, 0 means no limit")
 )
@@ -42,16 +37,6 @@ func realMain() int {
 	log.SetFlags(0)
 	flag.Parse()
 	args := flag.Args()
-
-	if *degub {
-		actor.SetLogLevel(actorlog.DebugLevel)
-		remote.SetLogLevel(actorlog.DebugLevel)
-	} else {
-		actor.SetLogLevel(actorlog.ErrorLevel)
-		remote.SetLogLevel(actorlog.ErrorLevel)
-	}
-
-	remote.Start(*listenAddr)
 
 	// parse flags
 	if *masterHost == "" {
@@ -93,57 +78,6 @@ func exitErr(err error) {
 	log.Fatalf("ERROR: %v", err)
 }
 
-func showAggregatedValue() error {
-	var agg command.ShowAggregatedValueAck
-	if err := requestAsJSON(http.MethodGet, worker.APIPathShowAggregatedValue, &command.ShowAggregatedValueAck{}, &agg); err != nil {
-		return err
-	}
-
-	log.Println(fmt.Sprintf("got %d values", len(agg.AggregatedValues)))
-	for name, val := range agg.AggregatedValues {
-		log.Printf("[%s] %s\n", name, val)
-	}
-	return nil
-}
-
-func sendShutdown() error {
-	if err := requestAsJSON(http.MethodPost, worker.APIPathShutdown, nil, nil); err != nil {
-		return err
-	}
-	log.Println("ok")
-	return nil
-}
-
-func showStat() error {
-	var stat command.CoordinatorStatsAck
-	if err := requestAsJSON(http.MethodGet, worker.APIPathStats, &command.CoordinatorStats{}, &stat); err != nil {
-		return err
-	}
-	printStat(&stat)
-	return nil
-}
-
-func watch() error {
-	for {
-		var stat command.CoordinatorStatsAck
-		if err := requestAsJSON(http.MethodGet, worker.APIPathStats, &command.CoordinatorStats{}, &stat); err != nil {
-			return err
-		}
-
-		printStat(&stat)
-
-		if stat.StatsCompleted() {
-			log.Println("")
-			log.Println("completed")
-			break
-		}
-
-		time.Sleep(time.Duration(*watchDuration) * time.Millisecond)
-	}
-
-	return nil
-}
-
 func requestAsJSON(method string, apiPath string, req interface{}, res interface{}) error {
 	u, err := url.Parse(fmt.Sprintf("http://%s", *masterHost)) // TODO: https?
 	if err != nil {
@@ -159,6 +93,7 @@ func requestAsJSON(method string, apiPath string, req interface{}, res interface
 		}
 		body = bytes.NewReader(b)
 	}
+
 	request, err := http.NewRequest(method, u.String(), body)
 	if err != nil {
 		return errors.Wrap(err, "failed to new request")
@@ -182,6 +117,57 @@ func requestAsJSON(method string, apiPath string, req interface{}, res interface
 		if err := json.Unmarshal(resBody, res); err != nil {
 			return fmt.Errorf("failed to parse response: %s", resBody)
 		}
+	}
+
+	return nil
+}
+
+func showAggregatedValue() error {
+	var agg command.ShowAggregatedValueAck
+	if err := requestAsJSON(http.MethodGet, worker.APIPathShowAggregatedValue, nil, &agg); err != nil {
+		return err
+	}
+
+	log.Println(fmt.Sprintf("got %d values", len(agg.AggregatedValues)))
+	for name, val := range agg.AggregatedValues {
+		log.Printf("[%s] %s\n", name, val)
+	}
+	return nil
+}
+
+func sendShutdown() error {
+	if err := requestAsJSON(http.MethodPost, worker.APIPathShutdown, nil, nil); err != nil {
+		return err
+	}
+	log.Println("ok")
+	return nil
+}
+
+func showStat() error {
+	var stat command.CoordinatorStatsAck
+	if err := requestAsJSON(http.MethodGet, worker.APIPathStats, nil, &stat); err != nil {
+		return err
+	}
+	printStat(&stat)
+	return nil
+}
+
+func watch() error {
+	for {
+		var stat command.CoordinatorStatsAck
+		if err := requestAsJSON(http.MethodGet, worker.APIPathStats, nil, &stat); err != nil {
+			return err
+		}
+
+		printStat(&stat)
+
+		if stat.StatsCompleted() {
+			log.Println("")
+			log.Println("completed")
+			break
+		}
+
+		time.Sleep(time.Duration(*watchDuration) * time.Millisecond)
 	}
 
 	return nil
