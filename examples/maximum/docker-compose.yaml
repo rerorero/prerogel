@@ -33,8 +33,9 @@ services:
       - LISTEN_ADDR=172.33.0.30:8801
       - WORKERS=172.33.0.10:8801,172.33.0.20:8801
       - PARTITIONS=4
+      - API_PORT=9000
     ports:
-      - "8801:8801"
+      - "9000:9000"
 
 networks:
   max-demo:

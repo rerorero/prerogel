@@ -8,3 +8,7 @@ Go implementation of Google's Pregel.
 - [Pregel: A System for Large-Scale Graph Processing](https://kowshik.github.io/JPregel/pregel_paper.pdf)
 
 
+## Examples
+There are some examples in [examples](/examples) folder in this repository.
+
+- [Maximum Value](/examples/maximum)

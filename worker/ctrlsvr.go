@@ -148,7 +148,7 @@ func (s *CtrlServer) startSuperstepHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *CtrlServer) showAggValueHandler(w http.ResponseWriter, r *http.Request) {
-	res, err := s.redirectAndWait(w, r, &command.ShowAggregatedValue{})
+	res, err := s.requestAndWait(w, &command.ShowAggregatedValue{})
 	if err != nil {
 		s.respondError(w, http.StatusInternalServerError, err)
 		return

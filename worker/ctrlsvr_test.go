@@ -165,7 +165,7 @@ func Test_newCtrlServer(t *testing.T) {
 			args: args{
 				method: http.MethodPost,
 				path:   APIPathShowAggregatedValue,
-				req:    &command.ShowAggregatedValue{},
+				req:    nil,
 			},
 			wantRes: func(r *http.Response) {
 				var ack command.ShowAggregatedValueAck
