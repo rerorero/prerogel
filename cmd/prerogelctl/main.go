@@ -72,6 +72,7 @@ func realMain() int {
 		err = showAggregatedValue(coordinator)
 	case args[0] == "shutdown":
 		err = sendShutdown(coordinator)
+	// TODO: help command
 	default:
 		err = fmt.Errorf("%s - no such command", args[0])
 		flag.PrintDefaults()

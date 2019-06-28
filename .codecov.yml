@@ -1,8 +1,7 @@
 ignore:
-  - "cmd/server/main.go"
-  - "test/*.go"
-  - "test/mock/*.go"
-  - "di/di.go"
+  - "cmd/**/*.go"
+  - "**/*.pb.go"
+  - "examples"
 coverage:
   range: "70..90"
   round: down

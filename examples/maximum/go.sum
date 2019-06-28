@@ -1,6 +1,9 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/AsynkronIT/goconsole v0.0.0-20160504192649-bfa12eebf716/go.mod h1:2wH9LwjNrSqVmCIi35aqCJ0OGTE4DZ53LCRaGQESBp8=
 github.com/AsynkronIT/gonet v0.0.0-20161127091928-0553637be225/go.mod h1:RwIiSK8AJBCPP7hBBfXD1iferErYAmGbqv/Lu84ZFIA=
+github.com/AsynkronIT/protoactor-go v0.0.0-20190429152931-21e2d03dcae5/go.mod h1:zFQR0CTJv3Wb3wCpUR01gvk1ilT+5tGNkSL8GqdNQLU=
+github.com/AsynkronIT/protoactor-go v0.0.0-20190619151400-46c416c5ae7f h1:AGVF2zJ/Yfch2QqA8W4W4LDdEMBzBZjy+1kRYQ8sEB4=
+github.com/AsynkronIT/protoactor-go v0.0.0-20190619151400-46c416c5ae7f/go.mod h1:zFQR0CTJv3Wb3wCpUR01gvk1ilT+5tGNkSL8GqdNQLU=
 github.com/Workiva/go-datastructures v1.0.50 h1:slDmfW6KCHcC7U+LP3DDBbm4fqTwZGn1beOFPfGaLvo=
 github.com/Workiva/go-datastructures v1.0.50/go.mod h1:Z+F2Rca0qCsVYDS8z7bAGm8f3UkzuWYS/oBZz5a7VVA=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
