@@ -59,26 +59,23 @@ func realMain() int {
 		exitErr(errors.New("no host specified"))
 	}
 
-	// common setup
-	coordinator := actor.NewPID(*masterHost, worker.CoordinatorActorID)
-
 	// run command
 	var err error
 	switch {
 	case len(args) == 0:
 		err = errors.New("no command specified")
 	case args[0] == "state":
-		err = showStat(coordinator)
+		err = showStat()
 	case args[0] == "load":
-		load(coordinator, args[1:])
+		load(args[1:])
 	case args[0] == "start":
-		err = startSuperStep(coordinator)
+		err = startSuperStep()
 	case args[0] == "watch":
-		err = watch(coordinator)
+		err = watch()
 	case args[0] == "agg":
-		err = showAggregatedValue(coordinator)
+		err = showAggregatedValue()
 	case args[0] == "shutdown":
-		err = sendShutdown(coordinator)
+		err = sendShutdown()
 	// TODO: help command
 	default:
 		err = fmt.Errorf("%s - no such command", args[0])
@@ -96,19 +93,10 @@ func exitErr(err error) {
 	log.Fatalf("ERROR: %v", err)
 }
 
-func showAggregatedValue(coordinator *actor.PID) error {
-	ctx := actor.EmptyRootContext
-	fut := ctx.RequestFuture(coordinator, &command.ShowAggregatedValue{}, time.Duration(*timeoutSec)*time.Second)
-	if err := fut.Wait(); err != nil {
-		return errors.Wrap(err, "failed to request: ")
-	}
-	res, err := fut.Result()
-	if err != nil {
-		return errors.Wrap(err, "coordinator responds error: ")
-	}
-	agg, ok := res.(*command.ShowAggregatedValueAck)
-	if !ok {
-		return fmt.Errorf("invalid CoordinatorStatsAck: %#v", res)
+func showAggregatedValue() error {
+	var agg command.ShowAggregatedValueAck
+	if err := requestAsJSON(http.MethodGet, worker.APIPathShowAggregatedValue, &command.ShowAggregatedValueAck{}, &agg); err != nil {
+		return err
 	}
 
 	log.Println(fmt.Sprintf("got %d values", len(agg.AggregatedValues)))
@@ -118,31 +106,24 @@ func showAggregatedValue(coordinator *actor.PID) error {
 	return nil
 }
 
-func sendShutdown(coordinator *actor.PID) error {
-	ctx := actor.EmptyRootContext
-	fut := ctx.RequestFuture(coordinator, &command.Shutdown{}, time.Duration(*timeoutSec)*time.Second)
-	if err := fut.Wait(); err != nil {
-		return errors.Wrap(err, "failed to request: ")
-	}
-	if _, err := fut.Result(); err != nil {
-		return errors.Wrap(err, "coordinator responds error: ")
+func sendShutdown() error {
+	if err := requestAsJSON(http.MethodPost, worker.APIPathShutdown, nil, nil); err != nil {
+		return err
 	}
 	log.Println("ok")
 	return nil
 }
 
-func showStat(coordinator *actor.PID) error {
+func showStat() error {
 	var stat command.CoordinatorStatsAck
 	if err := requestAsJSON(http.MethodGet, worker.APIPathStats, &command.CoordinatorStats{}, &stat); err != nil {
 		return err
 	}
-
 	printStat(&stat)
-
 	return nil
 }
 
-func watch(coordinator *actor.PID) error {
+func watch() error {
 	for {
 		var stat command.CoordinatorStatsAck
 		if err := requestAsJSON(http.MethodGet, worker.APIPathStats, &command.CoordinatorStats{}, &stat); err != nil {
@@ -219,8 +200,7 @@ func printStat(s *command.CoordinatorStatsAck) {
 	log.Print(sb.String())
 }
 
-func load(coordinator *actor.PID, ids []string) error {
-	ctx := actor.EmptyRootContext
+func load(ids []string) error {
 	wg := &sync.WaitGroup{}
 
 	for _, vid := range ids {
@@ -228,33 +208,13 @@ func load(coordinator *actor.PID, ids []string) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
-			fut := ctx.RequestFuture(coordinator, &command.LoadVertex{
+			var ack command.LoadVertexAck
+			if err := requestAsJSON(http.MethodPost, worker.APIPathLoadVertex, &command.LoadVertex{
 				VertexId: id,
-			}, time.Duration(*timeoutSec)*time.Second)
-
-			if err := fut.Wait(); err != nil {
+			}, &ack); err != nil {
 				log.Printf("ERROR! %v\n", err.Error())
 				return
 			}
-
-			res, err := fut.Result()
-			if err != nil {
-				log.Printf("ERROR! %v\n", err.Error())
-				return
-			}
-
-			ack, ok := res.(*command.LoadVertexAck)
-			if !ok {
-				log.Printf("ERROR! unexpected message %#v\n", res)
-				return
-			}
-
-			if ack.Error != "" {
-				log.Printf("ERROR! %s\n", ack.Error)
-				return
-			}
-
 			log.Printf("complete: veretex id is %s\n", ack.VertexId)
 		}()
 	}
@@ -265,7 +225,9 @@ func load(coordinator *actor.PID, ids []string) error {
 	return nil
 }
 
-func startSuperStep(coordinator *actor.PID) error {
-	actor.EmptyRootContext.Send(coordinator, &command.StartSuperStep{})
-	return watch(coordinator)
+func startSuperStep() error {
+	if err := requestAsJSON(http.MethodPost, worker.APIPathStartSuperStep, nil, nil); err != nil {
+		return err
+	}
+	return watch()
 }
