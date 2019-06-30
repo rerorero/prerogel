@@ -102,15 +102,31 @@ type maxPlugin struct {
 
 // NewVertex returns a new Vertex instance
 func (p *maxPlugin) NewVertex(id plugin.VertexID) (plugin.Vertex, error) {
-	value, outgoings, err := p.graph.Load(string(id))
+	value, outgoings, err := p.graph.LoadVertex(string(id))
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	return &vert{
 		id:            string(id),
 		value:         value,
 		outgoingEdges: outgoings,
 	}, nil
+}
+func (p *maxPlugin) NewPartitionVertices(partitionID uint64, numOfPartitions uint64, register func(v plugin.Vertex)) error {
+	values, outgoings, err := p.graph.LoadPartition(partitionID, numOfPartitions)
+	if err != nil {
+		return err
+	}
+
+	for id, value := range values {
+		register(&vert{
+			id:            string(id),
+			value:         value,
+			outgoingEdges: outgoings[id],
+		})
+	}
+
+	return nil
 }
 
 // Partition provides partition information

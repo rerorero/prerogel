@@ -212,7 +212,9 @@ func (state *coordinatorActor) idle(context actor.Context) {
 
 	case *command.LoadPartitionVertices:
 		for _, wi := range state.clusterInfo.WorkerInfo {
-			context.Request(wi.WorkerPid, cmd)
+			context.Request(wi.WorkerPid, &command.LoadPartitionVertices{
+				NumOfPartitions: state.clusterInfo.NumOfPartitions(),
+			})
 			state.ackRecorder.AddToWaitList(wi.WorkerPid.GetId())
 		}
 		state.behavior.Become(state.waitLoadPartitionVertices)

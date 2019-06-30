@@ -46,9 +46,10 @@ type Aggregator interface {
 
 // Plugin is a plugin that provides graph computation.
 type Plugin interface {
+	// TODO: either NewVertex() or NewPartitionVertices() is enough
 	NewVertex(id VertexID) (Vertex, error)
-	Partition(vertex VertexID, numOfPartitions uint64) (uint64, error)
 	NewPartitionVertices(partitionID uint64, numOfPartitions uint64, register func(v Vertex)) error
+	Partition(vertex VertexID, numOfPartitions uint64) (uint64, error)
 	MarshalMessage(msg Message) (*types.Any, error)
 	UnmarshalMessage(pb *types.Any) (Message, error)
 	GetCombiner() func(destination VertexID, messages []Message) ([]Message, error)
