@@ -52,7 +52,11 @@ func realMain() int {
 	case args[0] == "state":
 		err = showStat()
 	case args[0] == "load":
-		load(args[1:])
+		if len(args[1:]) > 0 {
+			err = loadVertex(args[1:])
+		} else {
+			err = loadPartition()
+		}
 	case args[0] == "start":
 		err = startSuperStep()
 	case args[0] == "watch":
@@ -186,7 +190,7 @@ func printStat(s *command.CoordinatorStatsAck) {
 	log.Print(sb.String())
 }
 
-func load(ids []string) error {
+func loadVertex(ids []string) error {
 	wg := &sync.WaitGroup{}
 
 	for _, vid := range ids {
@@ -209,6 +213,32 @@ func load(ids []string) error {
 	log.Println("done")
 
 	return nil
+}
+
+func loadPartition() error {
+	if err := requestAsJSON(http.MethodGet, worker.APIPathLoadPartitionVertices, nil, nil); err != nil {
+		return err
+	}
+
+	for {
+		var stat command.CoordinatorStatsAck
+		if err := requestAsJSON(http.MethodGet, worker.APIPathStats, nil, &stat); err != nil {
+			return err
+		}
+
+		if stat.State != worker.CoordinatorStateLoadingVertices {
+			if stat.State != worker.CoordinatorStateIdle {
+				return fmt.Errorf("current coordinator state: %s", stat.State)
+			}
+			log.Println("finished")
+			break
+		}
+
+		time.Sleep(time.Duration(*watchDuration) * time.Millisecond)
+	}
+
+	return nil
+
 }
 
 func startSuperStep() error {

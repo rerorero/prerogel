@@ -34,6 +34,8 @@ const (
 	APIPathStats = "/ctl/stats"
 	// APIPathLoadVertex is path for loading vertex
 	APIPathLoadVertex = "/ctl/load-vertex"
+	// APIPathLoadPartitionVertices is path for loading vertices of each partition
+	APIPathLoadPartitionVertices = "/ctl/load-partition"
 	// APIPathStartSuperStep is path for starting super step
 	APIPathStartSuperStep = "/ctl/start-superstep"
 	// APIPathShowAggregatedValue is path for showing aggregator values
@@ -53,6 +55,7 @@ func newCtrlServer(coordinator *actor.PID, logger *logrus.Logger) *CtrlServer {
 
 	s.mux.Handle(APIPathStats, http.HandlerFunc(s.statsHandler))
 	s.mux.Handle(APIPathLoadVertex, http.HandlerFunc(s.loadVertexHandler))
+	s.mux.Handle(APIPathLoadPartitionVertices, http.HandlerFunc(s.loadParionVerticesHandler))
 	s.mux.Handle(APIPathStartSuperStep, http.HandlerFunc(s.startSuperstepHandler))
 	s.mux.Handle(APIPathShowAggregatedValue, http.HandlerFunc(s.showAggValueHandler))
 	s.mux.Handle(APIPathShutdown, http.HandlerFunc(s.shutdownHandler))
@@ -140,6 +143,11 @@ func (s *CtrlServer) loadVertexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.respond(w, http.StatusOK, ack)
+}
+
+func (s *CtrlServer) loadParionVerticesHandler(w http.ResponseWriter, r *http.Request) {
+	s.actorCtx.Send(s.coordinator, &command.LoadPartitionVertices{})
+	s.respond(w, http.StatusOK, nil)
 }
 
 func (s *CtrlServer) startSuperstepHandler(w http.ResponseWriter, r *http.Request) {

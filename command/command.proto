@@ -10,6 +10,16 @@ message LoadVertexAck {
     string vertex_id = 1;
     string error = 2;
 }
+message LoadPartitionVertices {
+    uint64 num_of_partitions = 1;
+}
+message LoadPartitionVerticesAck {
+    uint64 partition_id = 1;
+    string error = 2;
+}
+message LoadPartitionVerticesWorkerAck {
+    actor.PID worker_pid = 1;
+}
 
 message SuperStepBarrier {}
 message SuperStepBarrierAck {

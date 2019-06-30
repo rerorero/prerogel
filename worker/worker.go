@@ -156,6 +156,13 @@ func (state *workerActor) idle(context actor.Context) {
 		context.Forward(destPid)
 		return
 
+	case *command.LoadPartitionVertices:
+		state.broadcastToPartitions(context, cmd)
+		state.resetAckRecorder()
+		state.behavior.Become(state.waitLoadPartitionVertices)
+		state.ActorUtil.LogDebug(context, "become waitLoadPartitionVertices")
+		return
+
 	case *command.SuperStepBarrier:
 		state.ActorUtil.LogDebug(context, "super step barrier")
 		state.ssMessageBuf.clear()
@@ -174,6 +181,28 @@ func (state *workerActor) idle(context actor.Context) {
 
 	default:
 		state.ActorUtil.Fail(context, fmt.Errorf("[idle] unhandled worker command: command=%#v", cmd))
+		return
+	}
+}
+
+func (state *workerActor) waitLoadPartitionVertices(context actor.Context) {
+	switch cmd := context.Message().(type) {
+	case *command.LoadPartitionVerticesAck:
+		state.ActorUtil.LogDebug(context, fmt.Sprintf("LoadPartitionVertcies ack: id=%v", cmd.PartitionId))
+		if !state.ackRecorder.Ack(strconv.FormatUint(cmd.PartitionId, 10)) {
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("LoadPartitionVertcies duplicated: id=%v", cmd.PartitionId))
+		}
+		if state.ackRecorder.HasCompleted() {
+			context.Send(state.coordinatorPID, &command.LoadPartitionVerticesWorkerAck{
+				WorkerPid: context.Self(),
+			})
+			state.resetAckRecorder()
+			state.behavior.Become(state.idle)
+			state.ActorUtil.LogDebug(context, "worker waitLoadPartitionVertices has completed")
+		}
+		return
+	default:
+		state.ActorUtil.Fail(context, fmt.Errorf("[waitLoadPartitionVertices] unhandled partition command: command=%#v", cmd))
 		return
 	}
 }

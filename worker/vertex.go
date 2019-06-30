@@ -30,6 +30,10 @@ type vertexActor struct {
 	statsMessageSent      uint64
 }
 
+type loadVertexLocal struct {
+	vertex plugin.Vertex
+}
+
 type computeContextImpl struct {
 	superStep          uint64
 	ctx                actor.Context
@@ -151,33 +155,39 @@ func (state *vertexActor) Receive(context actor.Context) {
 }
 
 func (state *vertexActor) waitInit(context actor.Context) {
+	var vert plugin.Vertex
+
 	switch cmd := context.Message().(type) {
 	case *command.LoadVertex:
-		if state.vertex != nil {
-			err := fmt.Sprintf("vertex has already initialized: id=%s", cmd.VertexId)
-			state.ActorUtil.LogError(context, err)
-			context.Respond(&command.LoadVertexAck{VertexId: string(state.vertex.GetID()), Error: err})
-			return
-		}
-		vert, err := state.plugin.NewVertex(plugin.VertexID(cmd.VertexId))
+		var err error
+		vert, err = state.plugin.NewVertex(plugin.VertexID(cmd.VertexId))
 		if err != nil {
-			err := fmt.Sprintf("failed to NewVertex: id=%s", cmd.VertexId)
-			state.ActorUtil.LogError(context, err)
-			context.Respond(&command.LoadVertexAck{VertexId: string(state.vertex.GetID()), Error: err})
+			e := fmt.Sprintf("failed to NewVertex: id=%s err=%s", cmd.VertexId, err.Error())
+			state.ActorUtil.LogError(context, e)
+			context.Respond(&command.LoadVertexAck{VertexId: string(state.vertex.GetID()), Error: e})
 			return
 		}
-		state.vertex = vert
-		context.Respond(&command.LoadVertexAck{
-			VertexId: string(state.vertex.GetID()),
-		})
-		state.behavior.Become(state.superstep)
-		state.ActorUtil.LogInfo(context, fmt.Sprintf("vertex %v loaded", state.vertex.GetID()))
-		return
+
+	case *loadVertexLocal:
+		vert = cmd.vertex
 
 	default:
 		state.ActorUtil.Fail(context, fmt.Errorf("[waitInit] unhandled vertex command: command=%#v(%v)", cmd, reflect.TypeOf(cmd)))
+	}
+
+	if state.vertex != nil {
+		err := fmt.Sprintf("vertex has already initialized: id=%s", vert.GetID())
+		state.ActorUtil.LogError(context, err)
+		context.Respond(&command.LoadVertexAck{VertexId: string(state.vertex.GetID()), Error: err})
 		return
 	}
+
+	state.vertex = vert
+	context.Respond(&command.LoadVertexAck{
+		VertexId: string(state.vertex.GetID()),
+	})
+	state.behavior.Become(state.superstep)
+	state.ActorUtil.LogInfo(context, fmt.Sprintf("vertex %v loaded", state.vertex.GetID()))
 }
 
 func (state *vertexActor) superstep(context actor.Context) {

@@ -134,6 +134,22 @@ func Test_newCtrlServer(t *testing.T) {
 			},
 		},
 		{
+			name: "load partition vertices ok",
+			mock: mock{
+				coordinator: func(c actor.Context) {},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   APIPathLoadPartitionVertices,
+				req:    nil,
+			},
+			wantRes: func(r *http.Response) {
+				if r.StatusCode != http.StatusOK {
+					t.Fatal("not ok")
+				}
+			},
+		},
+		{
 			name: "start super step ok",
 			mock: mock{
 				coordinator: func(c actor.Context) {},

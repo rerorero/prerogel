@@ -7,12 +7,13 @@ import (
 
 // MockedPlugin is mocked Plugin struct
 type MockedPlugin struct {
-	NewVertexMock        func(id plugin.VertexID) (plugin.Vertex, error)
-	PartitionMock        func(id plugin.VertexID, numOfPartitions uint64) (uint64, error)
-	MarshalMessageMock   func(msg plugin.Message) (*types.Any, error)
-	UnmarshalMessageMock func(a *types.Any) (plugin.Message, error)
-	GetCombinerMock      func() func(plugin.VertexID, []plugin.Message) ([]plugin.Message, error)
-	GetAggregatorsMock   func() []plugin.Aggregator
+	NewVertexMock            func(id plugin.VertexID) (plugin.Vertex, error)
+	PartitionMock            func(id plugin.VertexID, numOfPartitions uint64) (uint64, error)
+	NewPartitionVerticesMock func(partitionID uint64, numOfPartitions uint64, register func(v plugin.Vertex)) error
+	MarshalMessageMock       func(msg plugin.Message) (*types.Any, error)
+	UnmarshalMessageMock     func(a *types.Any) (plugin.Message, error)
+	GetCombinerMock          func() func(plugin.VertexID, []plugin.Message) ([]plugin.Message, error)
+	GetAggregatorsMock       func() []plugin.Aggregator
 }
 
 func (m *MockedPlugin) NewVertex(id plugin.VertexID) (plugin.Vertex, error) {
@@ -21,6 +22,10 @@ func (m *MockedPlugin) NewVertex(id plugin.VertexID) (plugin.Vertex, error) {
 
 func (m *MockedPlugin) Partition(id plugin.VertexID, numOfPartitions uint64) (uint64, error) {
 	return m.PartitionMock(id, numOfPartitions)
+}
+
+func (m *MockedPlugin) NewPartitionVertices(partitionID uint64, numOfPartitions uint64, register func(v plugin.Vertex)) error {
+	return m.NewPartitionVerticesMock(partitionID, numOfPartitions, register)
 }
 
 func (m *MockedPlugin) MarshalMessage(msg plugin.Message) (*types.Any, error) {

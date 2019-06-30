@@ -26,6 +26,10 @@ func (pp *pluginProxy) NewVertex(id plugin.VertexID) (plugin.Vertex, error) {
 	return pp.underlying.NewVertex(id)
 }
 
+func (pp *pluginProxy) NewPartitionVertices(partitionID uint64, numOfPartitions uint64, register func(v plugin.Vertex)) error {
+	return pp.underlying.NewPartitionVertices(partitionID, numOfPartitions, register)
+}
+
 func (pp *pluginProxy) Partition(vertex plugin.VertexID, numOfPartitions uint64) (uint64, error) {
 	return pp.underlying.Partition(vertex, numOfPartitions)
 }

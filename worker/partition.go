@@ -94,6 +94,36 @@ func (state *partitionActor) idle(context actor.Context) {
 		context.Forward(pid)
 		return
 
+	case *command.LoadPartitionVertices:
+		state.resetAckRecorder()
+		var loadErr string
+		if err := state.plugin.NewPartitionVertices(state.partitionID, cmd.NumOfPartitions, func(v plugin.Vertex) {
+			// TODO: concurrency unsafe
+			vid := v.GetID()
+			pid, err := context.SpawnNamed(state.vertexProps, fmt.Sprintf("v%v", vid))
+			if err != nil {
+				loadErr = fmt.Sprintf("failed to spawn actor: id=%s", vid)
+				state.ActorUtil.LogError(context, loadErr)
+				return
+			}
+			state.vertices[vid] = pid
+			context.Request(pid, &loadVertexLocal{vertex: v})
+			state.ackRecorder.AddToWaitList(string(vid))
+		}); err != nil {
+			state.ackRecorder.Clear()
+			state.ActorUtil.LogError(context, err.Error())
+			context.Respond(&command.LoadPartitionVerticesAck{PartitionId: state.partitionID, Error: err.Error()})
+			return
+		}
+		if loadErr != "" {
+			state.ackRecorder.Clear()
+			context.Respond(&command.LoadPartitionVerticesAck{PartitionId: state.partitionID, Error: loadErr})
+			return
+		}
+		state.ActorUtil.LogDebug(context, fmt.Sprintf("start waiting for loading partition vertices"))
+		state.behavior.Become(state.waitLoadPartitionVertices)
+		return
+
 	case *command.SuperStepBarrier:
 		if len(state.vertices) == 0 {
 			state.ActorUtil.LogInfo(context, fmt.Sprintf("[idle] no vertex is assigned"))
@@ -111,6 +141,27 @@ func (state *partitionActor) idle(context actor.Context) {
 
 	default:
 		state.ActorUtil.Fail(context, fmt.Errorf("[idle] unhandled partition command: command=%#v", cmd))
+		return
+	}
+}
+
+func (state *partitionActor) waitLoadPartitionVertices(context actor.Context) {
+	switch cmd := context.Message().(type) {
+	case *command.LoadVertexAck:
+		if !state.ackRecorder.Ack(cmd.VertexId) {
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("LoadVertexAck(partition) duplicated: id=%v", cmd.VertexId))
+		}
+		if state.ackRecorder.HasCompleted() {
+			context.Send(context.Parent(), &command.LoadPartitionVerticesAck{
+				PartitionId: state.partitionID,
+			})
+			state.resetAckRecorder()
+			state.behavior.Become(state.idle)
+			state.ActorUtil.LogDebug(context, "loading partition finished")
+		}
+		return
+	default:
+		state.ActorUtil.Fail(context, fmt.Errorf("[waitLoadPartitionVertices] unhandled partition command: command=%#v", cmd))
 		return
 	}
 }
