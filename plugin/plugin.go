@@ -47,6 +47,7 @@ type Aggregator interface {
 // Plugin is a plugin that provides graph computation.
 type Plugin interface {
 	// TODO: either NewVertex() or NewPartitionVertices() is enough
+	// TODO: improve to load vertices. each vertex loading should be concurrently
 	NewVertex(id VertexID) (Vertex, error)
 	NewPartitionVertices(partitionID uint64, numOfPartitions uint64, register func(v Vertex)) error
 	Partition(vertex VertexID, numOfPartitions uint64) (uint64, error)
