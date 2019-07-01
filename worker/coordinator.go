@@ -252,7 +252,7 @@ func (state *coordinatorActor) waitLoadPartitionVertices(context actor.Context) 
 			state.ackRecorder.Clear()
 			state.behavior.Become(state.idle)
 			state.stateName = CoordinatorStateIdle
-			state.ActorUtil.LogDebug(context, fmt.Sprintf("waitLoadPartitionVertcis completed"))
+			state.ActorUtil.LogInfo(context, fmt.Sprintf("waitLoadPartitionVertcis completed"))
 		}
 		return
 

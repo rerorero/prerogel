@@ -12,7 +12,10 @@ import (
 func main() {
 	var plg plugin.Plugin
 
-	plg = loader.HeapLoader{}
+	plg = &ssspPlugin{
+		sourceID: "a", // TODO: how should I specify the source vertex
+		graph:    &loader.HeapLoader{},
+	}
 
 	fmt.Println("start agent..")
 	if err := worker.Run(context.Background(), plg, ""); err != nil {

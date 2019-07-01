@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"math"
 
-	sssp "github.com/rerorero/prerogel/examples/sssp/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/rerorero/prerogel/examples/sssp/loader"
+	sssp "github.com/rerorero/prerogel/examples/sssp/proto"
 	"github.com/rerorero/prerogel/plugin"
 )
 
@@ -36,15 +36,16 @@ func (v *ssspVert) Compute(ctx plugin.ComputeContext) error {
 		if min == nil || v.value < min.Value {
 			return nil
 		}
+
+		v.value = min.Value
+		v.parent = min.FromVertexId
 	}
 
-	v.value = min.Value
-	v.parent = min.FromVertexId
-	for id, dist := v.outgoings {
+	for id, dist := range v.outgoings {
 		if err := ctx.SendMessageTo(plugin.VertexID(id), &sssp.SSSPMessage{
 			FromVertexId: v.id,
 			Value:        v.value + dist,
-		}); err {
+		}); err != nil {
 			return err
 		}
 	}
@@ -129,7 +130,7 @@ func getMinFromMessages(messages []plugin.Message) (*sssp.SSSPMessage, error) {
 		if !ok {
 			return nil, fmt.Errorf("unknown mesage type: %#v", m)
 		}
-		if msg.Value > min {
+		if msg.Value < min {
 			ret = msg
 		}
 	}

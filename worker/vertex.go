@@ -258,10 +258,6 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 	}
 
 	if state.halted {
-		if len(state.messageQueue) > 0 {
-			// activate if it receives messages to be handled in the next step
-			state.halted = false
-		}
 		state.respondComputeAck(ctx)
 		return
 	}
@@ -286,6 +282,11 @@ func (state *vertexActor) onComputed(ctx actor.Context, cmd *command.Compute) {
 }
 
 func (state *vertexActor) respondComputeAck(ctx actor.Context) {
+	if len(state.messageQueue) > 0 {
+		// activate if it receives messages to be handled in the next step
+		state.halted = false
+	}
+
 	stats, err := findAggregator(state.plugin.GetAggregators(), VertexStatsName)
 	if err == nil {
 		var active uint64
