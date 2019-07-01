@@ -9,6 +9,6 @@ Go implementation of Google's Pregel.
 
 
 ## Examples
-There are some examples in [examples](/examples) folder in this repository.
 
 - [Maximum Value](/examples/maximum)
+- [Single Source Shortest Path](/examples/sssp)

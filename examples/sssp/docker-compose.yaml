@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  worker1: &agent
+    image: golang:1.12-stretch
+    working_dir: /go/src/github.com/github.com/rerorero/prerogel/examples/sssp
+    volumes:
+      - ../../:/go/src/github.com/github.com/rerorero/prerogel
+    command: "make run"
+    networks:
+      max-demo:
+        ipv4_address: 172.34.0.10
+    environment:
+      - ROLE=worker
+      - LISTEN_ADDR=172.34.0.10:8801
+
+  worker2:
+    <<: *agent
+    networks:
+      max-demo:
+        ipv4_address: 172.34.0.20
+    environment:
+      - ROLE=worker
+      - LISTEN_ADDR=172.34.0.20:8801
+
+  master:
+    <<: *agent
+    networks:
+      max-demo:
+        ipv4_address: 172.34.0.30
+    environment:
+      - ROLE=master
+      - LISTEN_ADDR=172.34.0.30:8801
+      - WORKERS=172.34.0.10:8801,172.34.0.20:8801
+      - PARTITIONS=4
+      - API_PORT=9000
+    ports:
+      - "9000:9000"
+
+networks:
+  max-demo:
+    driver: bridge
+    ipam:
+     driver: default
+     config:
+       - subnet: 172.34.0.0/24
