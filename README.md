@@ -12,3 +12,10 @@ Go implementation of Google's Pregel.
 
 - [Maximum Value](/examples/maximum)
 - [Single Source Shortest Path](/examples/sssp)
+
+## TODO
+- [x] implement superstep
+- [x] combiner
+- [x] aggregator
+- [ ] persistent and recovery
+- [ ] master failover
