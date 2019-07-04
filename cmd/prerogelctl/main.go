@@ -65,6 +65,12 @@ func realMain() int {
 		err = showAggregatedValue()
 	case args[0] == "shutdown":
 		err = sendShutdown()
+	case args[0] == "value":
+		if len(args) > 1 {
+			err = getVertexValue(args[1])
+		} else {
+			err = errors.New("no vertex ID is specified")
+		}
 	// TODO: help command
 	default:
 		err = fmt.Errorf("%s - no such command", args[0])
@@ -246,4 +252,13 @@ func startSuperStep() error {
 		return err
 	}
 	return watch()
+}
+
+func getVertexValue(id string) error {
+	var ack command.GetVertexValueAck
+	if err := requestAsJSON(http.MethodGet, worker.APIPathGetVertexValue, &command.GetVertexValue{VertexId: id}, &ack); err != nil {
+		return err
+	}
+	log.Println("value = " + ack.Value)
+	return nil
 }

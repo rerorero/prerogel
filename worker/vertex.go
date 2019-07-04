@@ -151,7 +151,22 @@ func (state *vertexActor) Receive(context actor.Context) {
 	if state.ActorUtil.IsSystemMessage(context.Message()) {
 		return
 	}
-	state.behavior.Receive(context)
+
+	switch cmd := context.Message().(type) {
+	case *command.GetVertexValue:
+		ack := &command.GetVertexValueAck{
+			VertexId: cmd.VertexId,
+		}
+		if state.vertex != nil {
+			ack.Value = state.vertex.GetValueAsString()
+		}
+		context.Respond(ack)
+		return
+
+	default:
+		state.behavior.Receive(context)
+		return
+	}
 }
 
 func (state *vertexActor) waitInit(context actor.Context) {

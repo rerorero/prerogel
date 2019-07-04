@@ -21,6 +21,14 @@ message LoadPartitionVerticesWorkerAck {
     actor.PID worker_pid = 1;
 }
 
+message GetVertexValue {
+    string vertex_id = 1;
+}
+message GetVertexValueAck {
+    string vertex_id = 1;
+    string value = 2;
+}
+
 message SuperStepBarrier {}
 message SuperStepBarrierAck {
     string vertex_id = 1;

@@ -17,5 +17,6 @@ Go implementation of Google's Pregel.
 - [x] implement superstep
 - [x] combiner
 - [x] aggregator
+- [ ] topology mutation
 - [ ] persistent and recovery
 - [ ] master failover

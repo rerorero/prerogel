@@ -42,6 +42,8 @@ const (
 	APIPathShowAggregatedValue = "/ctl/agg"
 	// APIPathShutdown is path for shutdown
 	APIPathShutdown = "/ctl/shutdown"
+	// APIPathGetVertexValue is path for getting vertex valu
+	APIPathGetVertexValue = "/ctl/vertex/value"
 )
 
 func newCtrlServer(coordinator *actor.PID, logger *logrus.Logger) *CtrlServer {
@@ -59,6 +61,7 @@ func newCtrlServer(coordinator *actor.PID, logger *logrus.Logger) *CtrlServer {
 	s.mux.Handle(APIPathStartSuperStep, http.HandlerFunc(s.startSuperstepHandler))
 	s.mux.Handle(APIPathShowAggregatedValue, http.HandlerFunc(s.showAggValueHandler))
 	s.mux.Handle(APIPathShutdown, http.HandlerFunc(s.shutdownHandler))
+	s.mux.Handle(APIPathGetVertexValue, http.HandlerFunc(s.getVertexValueHandler))
 
 	return s
 }
@@ -181,6 +184,22 @@ func (s *CtrlServer) shutdownHandler(w http.ResponseWriter, r *http.Request) {
 	ack, ok := res.(*command.ShutdownAck)
 	if !ok {
 		s.respondError(w, http.StatusInternalServerError, errors.New(fmt.Sprintf("not shutdown ack: %#v", res)))
+		return
+	}
+
+	s.respond(w, http.StatusOK, ack)
+}
+
+func (s *CtrlServer) getVertexValueHandler(w http.ResponseWriter, r *http.Request) {
+	res, err := s.redirectAndWait(w, r, &command.GetVertexValue{})
+	if err != nil {
+		s.respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	ack, ok := res.(*command.GetVertexValueAck)
+	if !ok {
+		s.respondError(w, http.StatusInternalServerError, errors.New(fmt.Sprintf("not get vertex value ack: %#v", res)))
 		return
 	}
 

@@ -46,8 +46,9 @@ func (m *MockedPlugin) GetAggregators() []plugin.Aggregator {
 
 // MockedVertex is mocked Vertex struct
 type MockedVertex struct {
-	ComputeMock func(computeContext plugin.ComputeContext) error
-	GetIDMock   func() plugin.VertexID
+	ComputeMock          func(computeContext plugin.ComputeContext) error
+	GetIDMock            func() plugin.VertexID
+	GetValueAsStringMock func() string
 }
 
 func (m *MockedVertex) Compute(computeContext plugin.ComputeContext) error {
@@ -55,6 +56,9 @@ func (m *MockedVertex) Compute(computeContext plugin.ComputeContext) error {
 }
 func (m *MockedVertex) GetID() plugin.VertexID {
 	return m.GetIDMock()
+}
+func (m *MockedVertex) GetValueAsString() string {
+	return m.GetValueAsStringMock()
 }
 
 // MockedAggregator

@@ -60,6 +60,10 @@ func (v *vert) GetID() plugin.VertexID {
 	return plugin.VertexID(v.id)
 }
 
+func (v *vert) GetValueAsString() string {
+	return strconv.FormatUint(uint64(v.value), 10)
+}
+
 // maxAggregator is aggregator of max
 type maxAggregator struct{}
 

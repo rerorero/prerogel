@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
@@ -55,6 +56,10 @@ func (v *ssspVert) Compute(ctx plugin.ComputeContext) error {
 
 func (v *ssspVert) GetID() plugin.VertexID {
 	return plugin.VertexID(v.id)
+}
+
+func (v *ssspVert) GetValueAsString() string {
+	return strconv.FormatUint(uint64(v.value), 10)
 }
 
 // ssspPlugin is single source shortest path plugin

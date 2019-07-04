@@ -46,12 +46,24 @@ func (state *partitionActor) Receive(context actor.Context) {
 		return
 	}
 
-	if cmd, ok := context.Message().(*command.ClusterInfo); ok {
+	switch cmd := context.Message().(type) {
+	case *command.ClusterInfo:
 		state.broadcastToVertices(context, cmd)
 		return
-	}
 
-	state.behavior.Receive(context)
+	case *command.GetVertexValue:
+		if v, ok := state.vertices[plugin.VertexID(cmd.VertexId)]; ok {
+			context.Forward(v)
+		} else {
+			state.LogWarn(context, fmt.Sprintf("%v no such vertex id in partition %v", cmd.VertexId, state.partitionID))
+			context.Respond(&command.GetVertexValueAck{VertexId: cmd.VertexId})
+		}
+		return
+
+	default:
+		state.behavior.Receive(context)
+		return
+	}
 }
 
 func (state *partitionActor) waitInit(context actor.Context) {

@@ -76,6 +76,22 @@ func (state *workerActor) Receive(context actor.Context) {
 		state.ActorUtil.LogInfo(context, "shutdown")
 		state.shutdownHandler()
 		return
+
+	case *command.GetVertexValue:
+		p, err := state.plugin.Partition(plugin.VertexID(cmd.VertexId), state.clusterInfo.NumOfPartitions())
+		if err != nil {
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("failed to Partition(): %v", err))
+			context.Respond(&command.GetVertexValueAck{VertexId: cmd.VertexId})
+			return
+		}
+		pid, ok := state.partitions[p]
+		if !ok {
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("destination partition(%v) is not found: command=%#v", p, cmd))
+			context.Respond(&command.GetVertexValueAck{VertexId: cmd.VertexId})
+			return
+		}
+		context.Forward(pid)
+		return
 	}
 
 	state.behavior.Receive(context)

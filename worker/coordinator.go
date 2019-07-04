@@ -111,6 +111,15 @@ func (state *coordinatorActor) Receive(context actor.Context) {
 		context.Respond(ack)
 		return
 
+	case *command.GetVertexValue:
+		w := state.findWorkerInfoByVertex(context, plugin.VertexID(cmd.VertexId))
+		if w == nil {
+			state.ActorUtil.LogWarn(context, fmt.Sprintf("worker couldn't be found: vertex id=%s", cmd.VertexId))
+			context.Respond(&command.GetVertexValueAck{VertexId: cmd.VertexId})
+			return
+		}
+		context.Forward(w.WorkerPid)
+
 	case *command.Shutdown:
 		state.ActorUtil.LogInfo(context, "shutdown")
 		for _, wi := range state.clusterInfo.WorkerInfo {
