@@ -36,7 +36,8 @@ $ prerogelctl -host 127.0.0.1:9000 load
 
 $ prerogelctl -host 127.0.0.1:9000 start
 
-# TODO: Get vertex value somehow
+# Get value of vertex i
+$ prerogelctl -host 127.0.0.1:9000 value i
 
 # Destroy cluster
 $ prerogelctl -host 127.0.0.1:9000 shutdown

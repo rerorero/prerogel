@@ -19,4 +19,3 @@ Go implementation of Google's Pregel.
 - [x] aggregator
 - [ ] topology mutation
 - [ ] persistent and recovery
-- [ ] master failover
